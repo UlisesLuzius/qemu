@@ -412,6 +412,7 @@ SRST
     even when driver contains a dot.
 ERST
 
+
 DEF("boot", HAS_ARG, QEMU_OPTION_boot,
     "-boot [order=drives][,once=drives][,menu=on|off]\n"
     "      [,splash=sp_name][,splash-time=sp_time][,reboot-timeout=rb_time][,strict=on|off]\n"
@@ -5018,6 +5019,44 @@ SRST
 
             (qemu) qom-set /objects/iothread1 poll-max-ns 100000
 ERST
+
+#ifdef CONFIG_QFLEX
+
+// QFLEX Debug
+DEF("qflex_d", HAS_ARG, QEMU_OPTION_qflex_d,
+    "-qflex_d item1,...    enable logging of specified items (use '-d help' for a list of log items)\n",
+    QEMU_ARCH_ARM)
+SRST
+``-qflex_d item1[,...]``
+    Enable logging of specified items.
+ERST
+
+// QFLEX extra commands
+DEF("qflex", HAS_ARG, QEMU_OPTION_qflex,
+    "-qflex [ff=on|ff][,profile=on|off][,pth_iloop=count]\n"
+    "       [ff=on|ff] fast forward prologue from loading snapshots for every core\n"
+    "       pth_iloop=count will set iloop count for qflex PTH\n"
+    "       profile=on Enable profile helper generation of executed instructions\n"
+    "       profile-mode=full Enable profiling from start. NOTE: if magic instruction to stop profiling is hit, profiling stops\n"
+    "       profile-mode=magic Enable profiling when magic instruction is hit\n",
+    QEMU_ARCH_ARM)
+SRST
+``-qflex [ff=on|ff][,profile=on|off][,pth_iloop=count]``
+    Enable QFLEX options
+ERST
+
+// QFLEX trace memory instructions command
+DEF("qflex-gen-mem-trace", HAS_ARG, QEMU_OPTION_qflex_gen_mem_trace,
+    "-qflex-gen-mem-trace\n",
+    QEMU_ARCH_ARM)
+
+SRST
+``-qflex-gen-mem-trace``
+    Enable a QFLEX to trace memory instructions
+Note : None
+ERST
+
+#endif CONFIG_QFLEX
 
 
 HXCOMM This is the last statement. Insert new options before this line!

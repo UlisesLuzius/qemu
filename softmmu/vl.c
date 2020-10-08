@@ -113,6 +113,10 @@
 #include "sysemu/iothread.h"
 #include "qemu/guest-random.h"
 
+#ifdef CONFIG_QFLEX
+#include "qflex/qflex-config.h"
+#endif
+
 #define MAX_VIRTIO_CONSOLES 1
 
 static const char *data_dir[16];
@@ -2900,6 +2904,11 @@ void qemu_init(int argc, char **argv, char **envp)
     qemu_add_opts(&qemu_icount_opts);
     qemu_add_opts(&qemu_semihosting_config_opts);
     qemu_add_opts(&qemu_fw_cfg_opts);
+#ifdef CONFIG_QFLEX
+    qemu_add_opts(&qemu_qflex_opts);
+	qemu_add_opts(&qemu_qflex_gen_mem_trace_opts);
+#endif
+
     module_call_init(MODULE_INIT_OPTS);
 
     runstate_init();
@@ -3782,6 +3791,11 @@ void qemu_init(int argc, char **argv, char **envp)
                 /* Nothing to be parsed here. Especially, do not error out below. */
                 break;
             default:
+#ifdef CONFIG_QFLEX
+                if (qflex_parse_opts(popt->index, optarg, &error_abort)) {
+                    break;
+                };
+#endif
                 if (os_parse_cmd_args(popt->index, optarg)) {
                     error_report("Option not supported in this build");
                     exit(1);
@@ -3789,6 +3803,7 @@ void qemu_init(int argc, char **argv, char **envp)
             }
         }
     }
+
     /*
      * Clear error location left behind by the loop.
      * Best done right after the loop.  Do not insert code here!

@@ -130,4 +130,8 @@ void hmp_info_vm_generation_id(Monitor *mon, const QDict *qdict);
 void hmp_info_memory_size_summary(Monitor *mon, const QDict *qdict);
 void hmp_info_sev(Monitor *mon, const QDict *qdict);
 
+#ifdef CONFIG_QFLEX
+#include "qflex/qflex-hmp.h"
+#endif
+
 #endif

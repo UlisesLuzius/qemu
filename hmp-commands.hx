@@ -1814,3 +1814,61 @@ ERST
         .flags      = "p",
     },
 
+
+#ifdef CONFIG_QFLEX
+
+    {
+        .name       = "qflex-mem-trace-start",
+        .args_type  = "nb_insn:i",
+        .params     = "nb_insn",
+        .help       = "start mem trace",
+        .cmd        = hmp_qflex_mem_trace_start,
+    },
+
+SRST
+``qflex-mem-trace-start`` *nb_insn*
+  Run mem trace for amount of *nb_insn*.
+ERST
+
+    {
+        .name       = "qflex-mem-trace-stop",
+        .args_type  = "",
+        .params     = "",
+        .help       = "stop mem trace",
+        .cmd        = hmp_qflex_mem_trace_stop,
+    },
+
+SRST
+``qflex-mem-trace-stop``
+  Stop mem trace.
+ERST
+
+    {
+        .name       = "qflex-mem-trace-end",
+        .args_type  = "",
+        .params     = "",
+        .help       = "end mem trace, reset stats",
+        .cmd        = hmp_qflex_mem_trace_start,
+    },
+
+SRST
+``qflex-mem-trace-end``
+  End mem trace by disabling and resetting stats.
+ERST
+
+    {
+        .name       = "qflex-mem-trace-log-stats",
+        .args_type  = "",
+        .params     = "",
+        .help       = "start mem trace",
+        .cmd        = hmp_qflex_mem_trace_log_stats,
+    },
+
+SRST
+``qflex-mem-trace-start``
+  Prints mem-trace results.
+ERST
+
+
+
+#endif

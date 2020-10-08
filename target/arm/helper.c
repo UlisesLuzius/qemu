@@ -12854,3 +12854,19 @@ void aarch64_sve_change_el(CPUARMState *env, int old_el,
     }
 }
 #endif
+
+#ifdef CONFIG_QFLEX
+#include "qflex-helper.h"
+uint64_t *vaddr_to_paddr(CPUState *cs, uint64_t vaddr) {
+	// MemTxAttrs attrs = {};
+	// uint64_t paddr = arm_cpu_get_phys_page_attrs_debug(cs, vaddr, &attrs);
+	uint64_t *paddr;
+	CPUARMState *env = cs->env_ptr;
+	MMUAccessType access_type = MMU_DATA_LOAD;
+
+	paddr = tlb_vaddr_to_host(env, vaddr, access_type, cpu_mmu_index(env, access_type == MMU_INST_FETCH));
+
+	return paddr;
+}
+
+#endif

@@ -103,3 +103,9 @@ DEF_HELPER_FLAGS_3(autda, TCG_CALL_NO_WG, i64, env, i64, i64)
 DEF_HELPER_FLAGS_3(autdb, TCG_CALL_NO_WG, i64, env, i64, i64)
 DEF_HELPER_FLAGS_2(xpaci, TCG_CALL_NO_RWG_SE, i64, env, i64)
 DEF_HELPER_FLAGS_2(xpacd, TCG_CALL_NO_RWG_SE, i64, env, i64)
+
+#ifdef CONFIG_QFLEX
+#define TCG_GEN
+#include "qflex/qflex-helper-a64.h"
+#undef TCG_GEN
+#endif /* CONFIG_QFLEX */

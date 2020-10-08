@@ -39,6 +39,11 @@
 #include "translate-a64.h"
 #include "qemu/atomic128.h"
 
+#ifdef CONFIG_QFLEX
+#define GEN_HELPER(func)  glue(gen_helper_, func)
+#include "qflex/qflex-models.h"
+#endif
+
 static TCGv_i64 cpu_X[32];
 static TCGv_i64 cpu_pc;
 
@@ -866,8 +871,14 @@ static void do_gpr_st(DisasContext *s, TCGv_i64 source,
                       unsigned int iss_srt,
                       bool iss_sf, bool iss_ar)
 {
+
     do_gpr_st_memidx(s, source, tcg_addr, size, get_mem_index(s),
                      iss_valid, iss_srt, iss_sf, iss_ar);
+#ifdef CONFIG_QFLEX
+    if(qflex_mem_trace_is_running()) {
+        GEN_HELPER(qflex_ldst_done)(cpu_env, tcg_addr, tcg_const_i64(1));
+    }
+#endif
 }
 
 /*
@@ -918,6 +929,11 @@ static void do_gpr_ld(DisasContext *s,
     do_gpr_ld_memidx(s, dest, tcg_addr, size, is_signed, extend,
                      get_mem_index(s),
                      iss_valid, iss_srt, iss_sf, iss_ar);
+#ifdef CONFIG_QFLEX
+    if(qflex_mem_trace_is_running()) {
+        GEN_HELPER(qflex_ldst_done)(cpu_env, tcg_addr, tcg_const_i64(0));
+    }
+#endif
 }
 
 /*
@@ -1467,6 +1483,14 @@ static void handle_hint(DisasContext *s, uint32_t insn,
             gen_helper_autib(cpu_X[30], cpu_env, cpu_X[30], cpu_X[31]);
         }
         break;
+#ifdef CONFIG_QFLEX
+    case 90:  case 91:  case 92:  case 93:  case 94:  case 95:  case 96:  case 97:  case 98:  case 99:
+    case 100: case 101: case 102: case 103: case 104: case 105: case 106: case 107: case 108: case 109:
+    case 110: case 111: case 112: case 113: case 114: case 115: case 116: case 117: case 118: case 119:
+    case 120: case 121: case 122: case 123: case 124: case 125: case 126: case 127:
+        GEN_HELPER(qflex_magic_insn)(cpu_env, tcg_const_i64(selector));
+        return;
+#endif /* CONFIG_QFLEX */
     default:
         /* default specified as NOP equivalent */
         break;
@@ -14202,8 +14226,16 @@ static void disas_a64_insn(CPUARMState *env, DisasContext *s)
 
     s->pc_curr = s->base.pc_next;
     insn = arm_ldl_code(env, s->base.pc_next, s->sctlr_b);
+#ifdef CONFIG_QFLEX
+    if(qflex_mem_trace_is_running()) {
+        uint64_t pc = s->base.pc_next;
+        GEN_HELPER(qflex_fetch_pc)(cpu_env, tcg_const_i64(pc));
+    }
+#endif
+
     s->insn = insn;
     s->base.pc_next += 4;
+
 
     s->fp_access_checked = false;
 

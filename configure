@@ -415,6 +415,7 @@ supported_cpu="no"
 supported_os="no"
 bogus_os="no"
 
+extsnap="no"
 # parse CC options first
 for opt do
   optarg=$(expr "x$opt" : 'x[^=]*=\(.*\)')
@@ -1286,6 +1287,10 @@ for opt do
           error_exit "vhost-user isn't available on win32"
       fi
   ;;
+  --disable-extsnap) extsnap="no"
+  ;;
+  --enable-extsnap) extsnap="yes"
+  ;;
   *)
       echo "ERROR: unknown option $opt"
       echo "Try '$0 --help' for more information"
@@ -1534,6 +1539,7 @@ disabled with --disable-FEATURE, default is enabled if available:
   crypto-afalg    Linux AF_ALG crypto backend driver
   vhost-user      vhost-user support
 
+  extsnap         support for external snapshots
 NOTE: The object files are built at the place where configure is launched
 EOF
 exit 0
@@ -5234,6 +5240,9 @@ EOF
     fi
   fi
 fi
+if test "$extsnap" = "yes" ; then
+  QEMU_CFLAGS="-DCONFIG_EXTSNAP $QEMU_CFLAGS"
+fi
 
 # Check that the C++ compiler exists and works with the C compiler.
 # All the QEMU_CXXFLAGS are based on QEMU_CFLAGS. Keep this at the end to don't miss any other that could be added.
@@ -5424,6 +5433,7 @@ echo "avx2 optimization $avx2_opt"
 echo "replication support $replication"
 echo "VxHS block device $vxhs"
 
+echo "external snapshots $extsnap"
 if test "$sdl_too_old" = "yes"; then
 echo "-> Your SDL version is too old - please upgrade to have SDL support"
 fi
@@ -6425,6 +6435,9 @@ if test "$target_softmmu" = "yes" ; then
   if test "$mttcg" = "yes" ; then
     echo "TARGET_SUPPORTS_MTTCG=y" >> $config_target_mak
   fi
+fi
+if test "$extsnap" = "yes" ; then
+  echo "CONFIG_EXTSNAP=y" >> $config_host_mak
 fi
 if test "$target_user_only" = "yes" ; then
   echo "CONFIG_USER_ONLY=y" >> $config_target_mak

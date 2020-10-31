@@ -91,6 +91,43 @@ void qemu_remove_exit_notifier(Notifier *notify);
 void qemu_add_machine_init_done_notifier(Notifier *notify);
 void qemu_remove_machine_init_done_notifier(Notifier *notify);
 
+#ifdef CONFIG_EXTSNAP
+int save_vmstate_ext(Monitor *mon, const char *name);
+int save_vmstate_ext_test(Monitor *mon, const char *name);
+int incremental_load_vmstate_ext(const char *name, Monitor* mon);
+int create_tmp_overlay(void);
+int delete_tmp_overlay(void);
+void configure_phases(QemuOpts *opts, Error **errp);
+void configure_ckpt(QemuOpts *opts, Error **errp);
+uint64_t get_phase_value(void);
+bool is_phases_enabled(void);
+bool is_ckpt_enabled(void);
+void toggle_phases_creation(void);
+void toggle_ckpt_creation(void);
+bool phase_is_valid(void);
+void save_phase(void);
+void save_ckpt(void);
+void pop_phase(void);
+bool save_request_pending(void);
+bool cont_request_pending(void);
+bool quit_request_pending(void);
+void request_cont(void);
+void request_quit(void);
+void toggle_cont_request(void);
+void toggle_save_request(void);
+void set_base_ckpt_name(const char* str);
+const char* get_ckpt_name(void);
+uint64_t get_ckpt_interval(void);
+uint64_t get_ckpt_end(void);
+bool can_quit(void);
+void toggle_can_quit(void);
+#endif
+
+#if defined(CONFIG_QUANTUM) || defined(CONFIG_FLEXUS) || defined(CONFIG_EXTSNAP)
+void processForOpts(uint64_t *val, const char* qopt, Error **errp);
+void processLetterforExponent(uint64_t *val, char c, Error **errp);
+#endif
+
 void qemu_announce_self(void);
 
 extern int autostart;

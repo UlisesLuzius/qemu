@@ -1574,8 +1574,9 @@ static void ram_save_cleanup(void *opaque)
     /* caller have hold iothread lock or is in a bh, so there is
      * no writing race against this migration_bitmap
      */
-    memory_global_dirty_log_stop();
-
+#ifndef CONFIG_EXTSNAP
+	memory_global_dirty_log_stop();
+#endif
     QLIST_FOREACH_RCU(block, &ram_list.blocks, next) {
         g_free(block->bmap);
         block->bmap = NULL;
@@ -2060,12 +2061,15 @@ static int ram_state_init(RAMState **rsp)
     /* Skip setting bitmap if there is no RAM */
     if (ram_bytes_total()) {
         RAMBlock *block;
-
         QLIST_FOREACH_RCU(block, &ram_list.blocks, next) {
             unsigned long pages = block->max_length >> TARGET_PAGE_BITS;
 
             block->bmap = bitmap_new(pages);
+#ifdef CONFIG_EXTSNAP
+            bitmap_clear(block->bmap, 0, pages);
+#else
             bitmap_set(block->bmap, 0, pages);
+#endif
             if (migrate_postcopy_ram()) {
                 block->unsentmap = bitmap_new(pages);
                 bitmap_set(block->unsentmap, 0, pages);
@@ -2081,6 +2085,20 @@ static int ram_state_init(RAMState **rsp)
 
     memory_global_dirty_log_start();
     migration_bitmap_sync(*rsp);
+#ifdef CONFIG_EXTSNAP
+    /*
+     * If number of dirty pages wasn't changed,
+     * it tries to save empty snapshot,
+     * so we should prevent such behavior.
+     */
+    if ((*rsp)->migration_dirty_pages == (ram_bytes_total() >> TARGET_PAGE_BITS)) {
+        error_report("Empty snapshot cannot be saved!\n");
+        qemu_mutex_unlock_ramlist();
+        qemu_mutex_unlock_iothread();
+        rcu_read_unlock();
+        return -EINVAL;
+    }
+#endif
     qemu_mutex_unlock_ramlist();
     qemu_mutex_unlock_iothread();
     rcu_read_unlock();
@@ -2694,6 +2712,40 @@ static int ram_load_postcopy(QEMUFile *f)
     return ret;
 }
 
+#ifdef CONFIG_EXTSNAP
+static inline void ram_list_clean(ram_addr_t start, ram_addr_t length)
+{
+    unsigned long page = BIT_WORD(start >> TARGET_PAGE_BITS);
+
+    /* start address is aligned at the start of a word? */
+    if (((page * BITS_PER_LONG) << TARGET_PAGE_BITS) == start) {
+        long k;
+        long nr = BITS_TO_LONGS(length >> TARGET_PAGE_BITS);
+        unsigned long * const *src;
+        unsigned long idx = (page * BITS_PER_LONG) / DIRTY_MEMORY_BLOCK_SIZE;
+        unsigned long offset = BIT_WORD((page * BITS_PER_LONG) %
+                                    DIRTY_MEMORY_BLOCK_SIZE);
+
+        rcu_read_lock();
+
+        src = atomic_rcu_read(
+                &ram_list.dirty_memory[DIRTY_MEMORY_MIGRATION])->blocks;
+
+        for (k = page; k < page + nr; k++) {
+            if (src[idx][offset]) {
+                atomic_set(&src[idx][offset], 0);
+            }
+
+            if (++offset >= BITS_TO_LONGS(DIRTY_MEMORY_BLOCK_SIZE)) {
+                offset = 0;
+                idx++;
+            }
+        }
+        rcu_read_unlock();
+    }
+}
+#endif
+
 static int ram_load(QEMUFile *f, void *opaque, int version_id)
 {
     int flags = 0, ret = 0, invalid_flags = 0;
@@ -2802,7 +2854,9 @@ static int ram_load(QEMUFile *f, void *opaque, int version_id)
                                  "accept migration", id);
                     ret = -EINVAL;
                 }
-
+#ifdef CONFIG_EXTSNAP
+                ram_list_clean(addr, block->used_length);
+#endif
                 total_ram_bytes -= length;
             }
             break;

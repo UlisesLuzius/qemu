@@ -32,6 +32,10 @@
 #include "sys/prctl.h"
 #endif
 
+#ifdef CONFIG_EXTSNAP
+    bool exton = false;
+#endif
+
 #ifdef CONFIG_SDL
 #if defined(__APPLE__) || defined(main)
 #include <SDL.h>
@@ -513,6 +517,41 @@ static QemuOptsList qemu_icount_opts = {
     },
 };
 
+#if defined(CONFIG_EXTSNAP) && defined(CONFIG_FLEXUS)
+static QemuOptsList qemu_phases_opts = {
+    .name = "phases",
+    .implied_opt_name = "steps",
+    .merge_lists = true,
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_phases_opts.head),
+    .desc = {
+        {
+            .name = "steps",
+            .type = QEMU_OPT_STRING,
+        }, {
+            .name = "name",
+            .type = QEMU_OPT_STRING,
+        },
+        { /* end of list */ }
+    },
+};
+
+static QemuOptsList qemu_ckpt_opts = {
+    .name = "ckpt",
+    .implied_opt_name = "every",
+    .merge_lists = true,
+    .head = QTAILQ_HEAD_INITIALIZER(qemu_ckpt_opts.head),
+    .desc = {
+        {
+            .name = "every",
+            .type = QEMU_OPT_STRING,
+        }, {
+            .name = "end",
+            .type = QEMU_OPT_STRING,
+        },
+        { /* end of list */ }
+    },
+};
+#endif
 static QemuOptsList qemu_semihosting_config_opts = {
     .name = "semihosting-config",
     .implied_opt_name = "enable",
@@ -1996,6 +2035,24 @@ static void main_loop(void)
 #ifdef CONFIG_PROFILER
         dev_time += profile_getclock() - ti;
 #endif
+
+#if defined(CONFIG_FLEXUS) && defined(CONFIG_EXTSNAP)
+    if (is_phases_enabled() || is_ckpt_enabled()){
+        if ( save_request_pending() && !cont_request_pending()) {
+            save_vmstate_ext(NULL, get_ckpt_name());
+            toggle_save_request();
+            toggle_cont_request();
+        } else {
+            if(cont_request_pending()) {
+                qmp_cont(NULL);
+                toggle_cont_request();
+            }
+        }
+    } else if (quit_request_pending()){
+        qmp_quit(NULL);
+    }
+
+#endif
     } while (!main_loop_should_exit());
 }
 
@@ -3090,6 +3147,10 @@ static void register_global_properties(MachineState *ms)
 
 int main(int argc, char **argv, char **envp)
 {
+#if defined(CONFIG_FLEXUS) && defined(CONFIG_EXTSNAP)
+     QemuOpts *phases_opts = NULL;
+     QemuOpts *ckpt_opts = NULL;
+#endif
     int i;
     int snapshot, linux_boot;
     const char *initrd_filename;
@@ -3125,7 +3186,9 @@ int main(int argc, char **argv, char **envp)
     Error *main_loop_err = NULL;
     Error *err = NULL;
     bool list_data_dirs = false;
-    char **dirs;
+#ifdef CONFIG_EXTSNAP
+    const char* loadext = NULL;
+#endif
     typedef struct BlockdevOptions_queue {
         BlockdevOptions *bdo;
         Location loc;
@@ -3175,6 +3238,11 @@ int main(int argc, char **argv, char **envp)
     qemu_add_opts(&qemu_name_opts);
     qemu_add_opts(&qemu_numa_opts);
     qemu_add_opts(&qemu_icount_opts);
+#if defined(CONFIG_FLEXUS) && defined(CONFIG_EXTSNAP)
+    qemu_add_opts(&qemu_ckpt_opts);
+ 
+    qemu_add_opts(&qemu_phases_opts);
+#endif
     qemu_add_opts(&qemu_semihosting_config_opts);
     qemu_add_opts(&qemu_fw_cfg_opts);
     module_call_init(MODULE_INIT_OPTS);
@@ -3407,6 +3475,15 @@ int main(int argc, char **argv, char **envp)
                 exit(1);
 #endif
                 break;
+#ifdef CONFIG_EXTSNAP
+            case QEMU_OPTION_exton:
+                exton = true;
+                break;
+            case QEMU_OPTION_loadext:
+                exton = true;
+                loadext = optarg;
+                break;
+#endif
             case QEMU_OPTION_portrait:
                 graphic_rotate = 90;
                 break;
@@ -3750,6 +3827,29 @@ int main(int argc, char **argv, char **envp)
                     default_monitor = 0;
                 }
                 break;
+#if defined(CONFIG_FLEXUS) && defined(CONFIG_EXTSNAP)
+        case QEMU_OPTION_phases:
+                if (is_ckpt_enabled())
+                    fprintf(stderr, "cant use phases and ckpt together");
+            phases_opts = qemu_opts_parse_noisily(qemu_find_opts("phases"),
+                                                  optarg, true);
+            if (!phases_opts) {
+                exit(1);
+            }
+            toggle_phases_creation();
+            break;
+
+        case QEMU_OPTION_ckpt:
+                if (is_phases_enabled())
+                    fprintf(stderr, "cant use phase and ckpt together");
+                ckpt_opts = qemu_opts_parse_noisily(qemu_find_opts("ckpt"),
+                                                      optarg, true);
+            if (!ckpt_opts) {
+                exit(1);
+            }
+            toggle_ckpt_creation();
+            break;
+#endif
             case QEMU_OPTION_watchdog:
                 if (watchdog) {
                     error_report("only one watchdog option may be given");
@@ -4878,6 +4978,20 @@ int main(int argc, char **argv, char **envp)
             autostart = 0;
         }
     }
+#if defined(CONFIG_FLEXUS) && defined(CONFIG_EXTSNAP)
+ 
+    if (phases_opts)
+        configure_phases(phases_opts, &error_abort);
+
+    if (ckpt_opts)
+        configure_ckpt(ckpt_opts, &error_abort);
+#endif
+#if defined (CONFIG_EXTSNAP) && defined (CONFIG_FLEXUS)
+        set_base_ckpt_name(loadext);
+#endif
+#if defined (CONFIG_EXTSNAP) && defined (CONFIG_FLEXUS)
+        set_base_ckpt_name("");
+#endif
 
     qdev_prop_check_globals();
     if (vmstate_dump_file) {
@@ -4902,7 +5016,11 @@ int main(int argc, char **argv, char **envp)
     main_loop();
     replay_disable_events();
     iothread_stop_all();
-
+#ifdef CONFIG_EXTSNAP
+    if (exton == true) {
+       delete_tmp_overlay();
+    }
+#endif
     pause_all_vcpus();
     bdrv_close_all();
     res_free();

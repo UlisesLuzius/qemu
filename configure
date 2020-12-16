@@ -518,6 +518,7 @@ malloc_trim=""
 ######################
 # QFLEX
 qflex="no"
+extsnap="no"
 ######################
 
 # parse CC options first
@@ -1613,8 +1614,10 @@ for opt do
   ;;
   --enable-qflex) qflex="yes"
   ;;
-
-
+  --disable-extsnap) extsnap="no"
+  ;;
+  --enable-extsnap) extsnap="yes"
+  ;;
   *)
       echo "ERROR: unknown option $opt"
       echo "Try '$0 --help' for more information"
@@ -1912,6 +1915,7 @@ disabled with --disable-FEATURE, default is enabled if available:
 ######################
 # QFLEX
   qflex           support for QFlex
+  extsnap         support for external snapshots
 ######################
 
 
@@ -6332,6 +6336,9 @@ fi
 if test $qflex = "yes" ; then
     QEMU_CFLAGS="-DCONFIG_QFLEX $QEMU_CFLAGS"
 fi
+if test "$extsnap" = "yes" ; then
+  QEMU_CFLAGS="-DCONFIG_EXTSNAP $QEMU_CFLAGS"
+fi
 ##########################################
 
 
@@ -6766,9 +6773,9 @@ echo "gdb               $gdb_bin"
 # QFLEX
 echo "## QFLEX settings ##"
 echo "qflex             $qflex"
+echo "extsnap           $extsnap"
 echo "####################"
 ######################
-
 
 if test "$supported_cpu" = "no"; then
     echo
@@ -8072,6 +8079,9 @@ fi
 # QFLEX
 if test "$qflex" = "yes" ; then
   echo "CONFIG_QFLEX=y" >> $config_host_mak
+fi
+if test "$extsnap" = "yes" ; then
+  echo "CONFIG_EXTSNAP=y" >> $config_host_mak
 fi
 ######################
 

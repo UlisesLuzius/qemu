@@ -113,6 +113,9 @@
 #include "sysemu/iothread.h"
 #include "qemu/guest-random.h"
 
+#ifdef CONFIG_EXTSNAP
+#include "migration/savevm-ext.h"
+#endif
 #ifdef CONFIG_QFLEX
 #include "qflex/qflex-config.h"
 #endif
@@ -1669,6 +1672,24 @@ void qemu_main_loop(void)
 #ifdef CONFIG_PROFILER
         dev_time += profile_getclock() - ti;
 #endif
+
+#if defined(CONFIG_FLEXUS) && defined(CONFIG_EXTSNAP)
+    if (is_phases_enabled() || is_ckpt_enabled()){
+        if ( save_request_pending() && !cont_request_pending()) {
+            save_vmstate_ext(NULL, get_ckpt_name());
+            toggle_save_request();
+            toggle_cont_request();
+        } else {
+            if(cont_request_pending()) {
+                qmp_cont(NULL);
+                toggle_cont_request();
+            }
+        }
+    } else if (quit_request_pending()){
+        qmp_quit(NULL);
+    }
+
+#endif
     }
 }
 
@@ -2908,6 +2929,10 @@ void qemu_init(int argc, char **argv, char **envp)
     qemu_add_opts(&qemu_qflex_opts);
 	qemu_add_opts(&qemu_qflex_gen_mem_trace_opts);
 #endif
+#if defined(CONFIG_FLEXUS) && defined(CONFIG_EXTSNAP)
+    qemu_add_opts(&qemu_ckpt_opts);
+    qemu_add_opts(&qemu_phases_opts);
+#endif
 
     module_call_init(MODULE_INIT_OPTS);
 
@@ -3791,6 +3816,11 @@ void qemu_init(int argc, char **argv, char **envp)
                 /* Nothing to be parsed here. Especially, do not error out below. */
                 break;
             default:
+#ifdef CONFIG_EXTSNAP
+				if(extsnap_parse_opts(popt->index, optarg, &error_abort)) {
+					break;
+				}
+#endif
 #ifdef CONFIG_QFLEX
                 if (qflex_parse_opts(popt->index, optarg, &error_abort)) {
                     break;
@@ -3803,6 +3833,7 @@ void qemu_init(int argc, char **argv, char **envp)
             }
         }
     }
+
 
     /*
      * Clear error location left behind by the loop.
@@ -4474,6 +4505,10 @@ void qemu_init(int argc, char **argv, char **envp)
         exit(0);
     }
 
+#ifdef CONFIG_EXTSNAP
+	execute_extsnap();
+#endif
+
     if (incoming) {
         Error *local_err = NULL;
         qemu_start_incoming_migration(incoming, &local_err);
@@ -4516,6 +4551,9 @@ void qemu_cleanup(void)
     vm_shutdown();
     replay_finish();
 
+#ifdef CONFIG_EXTSNAP
+	clean_extsnap();
+#endif
     job_cancel_sync_all();
     bdrv_close_all();
 

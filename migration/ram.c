@@ -1840,7 +1840,9 @@ static void ram_save_cleanup(void *opaque)
     /* caller have hold iothread lock or is in a bh, so there is
      * no writing race against the migration bitmap
      */
-    memory_global_dirty_log_stop();
+#ifndef CONFIG_EXTSNAP
+	 memory_global_dirty_log_stop();
+#endif
 
     RAMBLOCK_FOREACH_NOT_IGNORED(block) {
         g_free(block->clear_bmap);
@@ -2252,6 +2254,21 @@ static int ram_state_init(RAMState **rsp)
     (*rsp)->migration_dirty_pages = ram_bytes_total() >> TARGET_PAGE_BITS;
     ram_state_reset(*rsp);
 
+#ifndef CONFIG_EXTSNAP
+    /*
+     * If number of dirty pages wasn't changed,
+     * it tries to save empty snapshot,
+     * so we should prevent such behavior.
+     */
+    if ((*rsp)->migration_dirty_pages == (ram_bytes_total() >> TARGET_PAGE_BITS)) {
+        error_report("Empty snapshot cannot be saved!\n");
+        qemu_mutex_unlock_ramlist();
+        qemu_mutex_unlock_iothread();
+        rcu_read_unlock();
+        return -EINVAL;
+    }
+#endif
+
     return 0;
 }
 
@@ -2287,7 +2304,11 @@ static void ram_list_init_bitmaps(void)
              * guest memory.
              */
             block->bmap = bitmap_new(pages);
+#ifdef CONFIG_EXTSNAP
+            bitmap_clear(block->bmap, 0, pages);
+#else
             bitmap_set(block->bmap, 0, pages);
+#endif
             block->clear_bmap_shift = shift;
             block->clear_bmap = bitmap_new(clear_bmap_size(pages, shift));
         }
@@ -3297,6 +3318,40 @@ static int ram_load_postcopy(QEMUFile *f)
     return ret;
 }
 
+#ifdef CONFIG_EXTSNAP
+static inline void ram_list_clean(ram_addr_t start, ram_addr_t length)
+{
+    unsigned long page = BIT_WORD(start >> TARGET_PAGE_BITS);
+
+    /* start address is aligned at the start of a word? */
+    if (((page * BITS_PER_LONG) << TARGET_PAGE_BITS) == start) {
+        long k;
+        long nr = BITS_TO_LONGS(length >> TARGET_PAGE_BITS);
+        unsigned long * const *src;
+        unsigned long idx = (page * BITS_PER_LONG) / DIRTY_MEMORY_BLOCK_SIZE;
+        unsigned long offset = BIT_WORD((page * BITS_PER_LONG) %
+                                    DIRTY_MEMORY_BLOCK_SIZE);
+
+        rcu_read_lock();
+
+        src = atomic_rcu_read(
+                &ram_list.dirty_memory[DIRTY_MEMORY_MIGRATION])->blocks;
+
+        for (k = page; k < page + nr; k++) {
+            if (src[idx][offset]) {
+                atomic_set(&src[idx][offset], 0);
+            }
+
+            if (++offset >= BITS_TO_LONGS(DIRTY_MEMORY_BLOCK_SIZE)) {
+                offset = 0;
+                idx++;
+            }
+        }
+        rcu_read_unlock();
+    }
+}
+#endif
+
 static bool postcopy_is_advised(void)
 {
     PostcopyState ps = postcopy_state_get();
@@ -3498,6 +3553,9 @@ static int ram_load_precopy(QEMUFile *f)
                     ret = -EINVAL;
                 }
 
+#ifdef CONFIG_EXTSNAP
+                ram_list_clean(addr, block->used_length);
+#endif
                 total_ram_bytes -= length;
             }
             break;

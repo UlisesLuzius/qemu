@@ -36,6 +36,46 @@
 #include "fpu/softfloat.h"
 #include <zlib.h> /* For crc32 */
 
+#if defined(CONFIG_FLEXUS) && defined(CONFIG_EXTSNAP)
+#include "include/sysemu/sysemu.h"
+#include "qmp-commands.h"
+static uint64_t num_inst;
+static bool phases_init = false;
+void helper_phases(CPUARMState *env)
+{
+    if (is_phases_enabled()) {
+        if (!phases_init) {
+            phases_init = true;
+        }
+        if (phase_is_valid()) {
+            if (++num_inst == get_phase_value()) {
+                vm_stop(RUN_STATE_PAUSED);
+                save_phase();
+                pop_phase();
+                num_inst = 0;
+            }
+        } else if (!save_request_pending()) {
+            fprintf(stderr, "done creating phases.");
+            toggle_phases_creation();
+            request_quit();
+        }
+    } else if (is_ckpt_enabled()) {
+        if (++num_inst % get_ckpt_interval() == 0) {
+            vm_stop(RUN_STATE_PAUSED);
+            save_ckpt();
+        }
+
+        if (num_inst >= get_ckpt_end()) {
+            toggle_ckpt_creation();
+            fprintf(stderr, "done creating checkpoints.");
+            request_quit();
+        }
+
+
+    }
+
+}
+#endif
 /* C2.4.7 Multiply and divide */
 /* special cases for 0 and LLONG_MIN are mandated by the standard */
 uint64_t HELPER(udiv64)(uint64_t num, uint64_t den)

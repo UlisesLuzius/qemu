@@ -2943,3 +2943,18 @@ bool vmstate_check_only_migratable(const VMStateDescription *vmsd)
 
     return !(vmsd && vmsd->unmigratable);
 }
+
+
+#ifndef CONFIG_EXTSNAP
+void qmp_savevm_ext(const char *snap_name, Error **errp)
+{
+	error_setg(errp, "External snapshot support disabled");
+
+}
+
+void qmp_loadvm_ext(const char *snap_name, Error **errp)
+{
+	error_setg(errp, "External snapshot support disabled");
+
+}
+#endif

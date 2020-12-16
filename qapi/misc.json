@@ -1550,3 +1550,28 @@
 ##
 { 'command': 'query-vm-generation-id', 'returns': 'GuidInfo' }
 
+##
+# START CONFIG_EXTSNAP
+##
+
+##
+# @savevm-ext:
+#
+# Saves an external snapshot.
+#
+# Since: 2.10 PARSA
+##
+{ 'command': 'savevm-ext','data': {'name': 'str'}  }
+
+##
+# @loadvm-ext:
+#
+# loads an external snapshot.
+#
+# Since: 2.10 PARSA
+##
+{ 'command': 'loadvm-ext','data': {'name': 'str'}  }
+
+##
+# END CONFIG_EXTSNAP
+##

@@ -1444,6 +1444,13 @@ static void *atomic_mmu_lookup(CPUArchState *env, target_ulong addr,
            support this apart from stop-the-world.  */
         goto stop_the_world;
     }
+#ifndef CONFIG_EXTSNAP
+    /* Check notdirty */
+    if (unlikely(tlb_addr & TLB_NOTDIRTY)) {
+        tlb_set_dirty(env_cpu(env), addr);
+        tlb_addr = tlb_addr & ~TLB_NOTDIRTY;
+    }
+#endif
 
     /* Let the guest notice RMW on a write-only page.  */
     if (unlikely(tlbe->addr_read != (tlb_addr & ~TLB_NOTDIRTY))) {

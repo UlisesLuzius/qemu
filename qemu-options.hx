@@ -5020,6 +5020,24 @@ SRST
             (qemu) qom-set /objects/iothread1 poll-max-ns 100000
 ERST
 
+#ifdef CONFIG_EXTSNAP
+DEF("loadext", HAS_ARG, QEMU_OPTION_loadext, \
+    "-loadext [tag|id]\n" \
+    "                start right away with a externally saved state (loadvm-ext in monitor)\n",
+    QEMU_ARCH_ALL)
+SRST
+``-loadext`` *file*
+  Start right away with a externally saved state (@code{loadvm-ext} in monitor)
+ERST
+
+DEF("exton", 0, QEMU_OPTION_exton, \
+    "-exton      use external snapshots subsystem\n", QEMU_ARCH_ALL)
+SRST
+``-exton``
+  Use the external snapshot subsystem.
+ERST
+#endif //CONFIG_EXTSNAP
+
 #ifdef CONFIG_QFLEX
 
 // QFLEX Debug
@@ -5056,7 +5074,26 @@ SRST
 Note : None
 ERST
 
-#endif CONFIG_QFLEX
+#ifdef CONFIG_EXTSNAP // && CONFIG_QFLEX
 
+DEF("phases", HAS_ARG, QEMU_OPTION_phases, \
+        "-phases [steps=step1[,...]][,name=name]\n",
+        QEMU_ARCH_ALL)
+SRST
+``-phases steps=step1[,...][,name=name]``
+    Specify the values for phase generation. 
+	Also optionally specify a ``name`` for prefixing the phases.
+ERST
+
+DEF("ckpt", HAS_ARG, QEMU_OPTION_ckpt,"aaa", QEMU_ARCH_ALL)
+SRST
+``-ckpt every=V,end=E``
+    Specify the checkpoint intervals ``V`` and 
+	an interuction for end ``E``
+ERST
+
+#endif // CONFIG_EXTSNAP // && CONFIG_QFLEX
+
+#endif /* CONFIG_QFLEX */
 
 HXCOMM This is the last statement. Insert new options before this line!

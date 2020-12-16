@@ -1814,6 +1814,34 @@ ERST
         .flags      = "p",
     },
 
+#ifdef CONFIG_EXTSNAP
+    {
+        .name       = "savevm-ext",
+        .args_type  = "name:s?",
+        .params     = "tag",
+        .help       = "save an external VM snapshot. If no tag or id are provided, a new snapshot is created",
+        .cmd        = hmp_savevm_ext,
+    },
+SRST
+``savevm-ext`` *tag*
+  Create an external incremental snapshot of the whole virtual machine. If *tag* is
+  provided, it is used as human readable identifier. If there is already
+  a snapshot with the same tag or ID, it isn't replaced.
+ERST
+
+    {
+        .name       = "loadvm-ext",
+        .args_type  = "name:s",
+        .params     = "tag",
+        .help       = "restore a VM extrenal snapshot from its tag",
+        .cmd = hmp_loadvm_ext,
+    },
+SRST
+``loadvm-ext`` *tag*
+  Set the whole virtual machine to the external snapshot identified by the tag
+  *tag*.
+ERST
+#endif //CONFIG_EXTSNAP
 
 #ifdef CONFIG_QFLEX
 

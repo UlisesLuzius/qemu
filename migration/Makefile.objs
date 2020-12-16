@@ -12,6 +12,7 @@ common-obj-y += multifd-zlib.o
 common-obj-$(CONFIG_ZSTD) += multifd-zstd.o
 
 common-obj-$(CONFIG_RDMA) += rdma.o
+common-obj-$(CONFIG_EXTSNAP) += savevm-ext.o
 
 common-obj-$(CONFIG_LIVE_BLOCK_MIGRATION) += block.o
 

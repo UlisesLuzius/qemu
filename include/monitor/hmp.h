@@ -134,4 +134,9 @@ void hmp_info_sev(Monitor *mon, const QDict *qdict);
 #include "qflex/qflex-hmp.h"
 #endif
 
+#ifdef CONFIG_EXTSNAP
+void hmp_savevm_ext(Monitor *mon, const QDict *qdict);
+void hmp_loadvm_ext(Monitor *mon, const QDict *qdict);
+#endif
+
 #endif

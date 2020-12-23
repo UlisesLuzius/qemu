@@ -518,6 +518,8 @@ malloc_trim=""
 ######################
 # QFLEX
 qflex="no"
+# ARMFLEX
+armflex="no"
 ######################
 
 # parse CC options first
@@ -1613,7 +1615,11 @@ for opt do
   ;;
   --enable-qflex) qflex="yes"
   ;;
-
+# ARMFLEX
+  --disable-armflex) armflex="no"
+  ;;
+  --enable-armflex) armflex="yes"
+  ;;
 
   *)
       echo "ERROR: unknown option $opt"
@@ -1912,6 +1918,8 @@ disabled with --disable-FEATURE, default is enabled if available:
 ######################
 # QFLEX
   qflex           support for QFlex
+# ARMFLEX
+  armflex        support for ARMFLEX
 ######################
 
 
@@ -6332,6 +6340,10 @@ fi
 if test $qflex = "yes" ; then
     QEMU_CFLAGS="-DCONFIG_QFLEX $QEMU_CFLAGS"
 fi
+# ARMFLEX
+if test "$armflex" = "yes" ; then
+  QEMU_CFLAGS="-DCONFIG_ARMFLEX $QEMU_CFLAGS"
+fi
 ##########################################
 
 
@@ -6766,6 +6778,8 @@ echo "gdb               $gdb_bin"
 # QFLEX
 echo "## QFLEX settings ##"
 echo "qflex             $qflex"
+echo "## ARMFLEX settings ##"
+echo "ARMFLEX support   $armflex"
 echo "####################"
 ######################
 
@@ -8072,6 +8086,10 @@ fi
 # QFLEX
 if test "$qflex" = "yes" ; then
   echo "CONFIG_QFLEX=y" >> $config_host_mak
+fi
+# ARMFLEX
+if test "$armflex" = "yes" ; then
+  echo "CONFIG_ARMFLEX=y" >> $config_host_mak
 fi
 ######################
 

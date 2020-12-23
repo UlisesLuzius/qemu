@@ -863,6 +863,15 @@ static void do_gpr_st_memidx(DisasContext *s, TCGv_i64 source,
                                       0, 0, 0, 0, 0, false);
         disas_set_insn_syndrome(s, syn);
     }
+#ifdef CONFIG_QFLEX
+    if(qflex_mem_trace_is_running()) {
+        GEN_HELPER(qflex_ldst_done)(cpu_env, tcg_addr, tcg_const_i64(1));
+    }
+
+	if(armflex_gen_trace_is_running()) {
+		GEN_HELPER(armflex_add_ldst())
+	}
+#endif
 }
 
 static void do_gpr_st(DisasContext *s, TCGv_i64 source,
@@ -874,11 +883,6 @@ static void do_gpr_st(DisasContext *s, TCGv_i64 source,
 
     do_gpr_st_memidx(s, source, tcg_addr, size, get_mem_index(s),
                      iss_valid, iss_srt, iss_sf, iss_ar);
-#ifdef CONFIG_QFLEX
-    if(qflex_mem_trace_is_running()) {
-        GEN_HELPER(qflex_ldst_done)(cpu_env, tcg_addr, tcg_const_i64(1));
-    }
-#endif
 }
 
 /*
@@ -891,6 +895,7 @@ static void do_gpr_ld_memidx(DisasContext *s,
                              bool iss_valid, unsigned int iss_srt,
                              bool iss_sf, bool iss_ar)
 {
+
     MemOp memop = s->be_data + size;
 
     g_assert(size <= 3);
@@ -918,6 +923,12 @@ static void do_gpr_ld_memidx(DisasContext *s,
                                       0, 0, 0, 0, 0, false);
         disas_set_insn_syndrome(s, syn);
     }
+
+#ifdef CONFIG_QFLEX
+    if(qflex_mem_trace_is_running()) {
+        GEN_HELPER(qflex_ldst_done)(cpu_env, tcg_addr, tcg_const_i64(0));
+    }
+#endif
 }
 
 static void do_gpr_ld(DisasContext *s,
@@ -929,11 +940,6 @@ static void do_gpr_ld(DisasContext *s,
     do_gpr_ld_memidx(s, dest, tcg_addr, size, is_signed, extend,
                      get_mem_index(s),
                      iss_valid, iss_srt, iss_sf, iss_ar);
-#ifdef CONFIG_QFLEX
-    if(qflex_mem_trace_is_running()) {
-        GEN_HELPER(qflex_ldst_done)(cpu_env, tcg_addr, tcg_const_i64(0));
-    }
-#endif
 }
 
 /*
@@ -2311,6 +2317,11 @@ static void gen_load_exclusive(DisasContext *s, int rt, int rt2,
         tcg_gen_mov_i64(cpu_reg(s, rt), cpu_exclusive_val);
     }
     tcg_gen_mov_i64(cpu_exclusive_addr, addr);
+#ifdef CONFIG_QFLEX
+    if(qflex_mem_trace_is_running()) {
+        GEN_HELPER(qflex_ldst_done)(cpu_env, tcg_addr, tcg_const_i64(0));
+    }
+#endif
 }
 
 static void gen_store_exclusive(DisasContext *s, int rd, int rt, int rt2,
@@ -2383,6 +2394,11 @@ static void gen_store_exclusive(DisasContext *s, int rd, int rt, int rt2,
     tcg_gen_movi_i64(cpu_reg(s, rd), 1);
     gen_set_label(done_label);
     tcg_gen_movi_i64(cpu_exclusive_addr, -1);
+#ifdef CONFIG_QFLEX
+    if(qflex_mem_trace_is_running()) {
+        GEN_HELPER(qflex_ldst_done)(cpu_env, tcg_addr, tcg_const_i64(0));
+    }
+#endif
 }
 
 static void gen_compare_and_swap(DisasContext *s, int rs, int rt,

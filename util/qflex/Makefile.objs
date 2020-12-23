@@ -3,3 +3,7 @@ util-obj-y += qflex-models.o
 util-obj-y += qflex.o
 util-obj-y += qflex-config.o
 util-obj-y += qflex-hmp.o
+util-obj-$(CONFIG_ARMFLEX) += ArmflexArchState.pb-c.o
+util-obj-$(CONFIG_ARMFLEX) += armflex-communication.o
+util-obj-$(CONFIG_ARMFLEX) += armflex-trace.o
+util-obj-$(CONFIG_ARMFLEX) += armflex.o

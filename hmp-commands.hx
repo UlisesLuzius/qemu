@@ -1869,6 +1869,34 @@ SRST
   Prints mem-trace results.
 ERST
 
+#ifdef CONFIG_ARMFLEX
+    {
+        .name       = "armflex-start",
+        .args_type  = "",
+        .params     = "",
+        .help       = "start armflex",
+        .cmd        = hmp_armflex_start,
+    },
+
+SRST
+``armflex-start``
+  start armflex.
+ERST
+
+    {
+        .name       = "armflex-gen-trace",
+        .args_type  = "nb_insn:i",
+        .params     = "nb_insn",
+        .help       = "start tracing of state and modified pages",
+        .cmd        = hmp_armflex_gen_trace,
+    },
+
+SRST
+``armflex-gen-trace`` *nb_insn*
+  Run state tracing for *nb_insn*.
+ERST
+
+#endif
 
 
 #endif

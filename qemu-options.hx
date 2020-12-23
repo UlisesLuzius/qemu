@@ -5056,7 +5056,35 @@ SRST
 Note : None
 ERST
 
-#endif CONFIG_QFLEX
+
+#ifdef CONFIG_ARMFLEX
+
+DEF("armflex", HAS_ARG, QEMU_OPTION_armflex, \
+    "-armflex [enable=on|off][,mode=full|magic][,sim=on|off]\n", 
+	QEMU_ARCH_ARM)
+SRST
+``-armflex [enable=on|off][,mode=full|magic][,sim=on|off]``
+Enable FA-QFLEX, FPGA Accelerated QFLEX.
+
+``enable=on``
+    if FA-QFLEX is enabled, will start FA-QFLEX from the beginning.
+	Currently this option does not work when TBD.
+
+``-mode=mode`` 
+	will enable FA-QFLEX to take control when
+	``magic`` instruction is hit or ``full`` from the start (default).
+	Currently this option does not work if FA-QFLEX is disabled.
+
+``sim=on`` 
+	will communicate with Chisel3 simulator instead of real FPGA.
+	Currently this option does not work if FA-QFLEX is disabled and
+	does not work if sim is disabled.
+Note: NONE.
+ERST
+
+#endif /* CONFIG_ARMFLEX */
+
+#endif /* CONFIG_QFLEX */
 
 
 HXCOMM This is the last statement. Insert new options before this line!

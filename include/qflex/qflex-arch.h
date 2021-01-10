@@ -13,6 +13,6 @@
 
 uint64_t QFLEX_GET_ARCH(pc)(CPUState *cs);
 int QFLEX_GET_ARCH(el)(CPUState *cs);
-
+uint64_t QFLEX_GET_ARCH(pid)(CPUState *cs) 
 
 #endif /* QFLEX_ARCH_H */

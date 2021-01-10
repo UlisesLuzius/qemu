@@ -8,3 +8,19 @@
 
 uint64_t QFLEX_GET_ARCH(pc)(CPUState *cs) { return ENV(cs)->pc; }
 int      QFLEX_GET_ARCH(el)(CPUState *cs) { return arm_current_el(ENV(cs)); }
+
+
+/**
+ * NOTE: Layout ttbrN register: (src: https://developer.arm.com/docs/ddi0595/h/aarch64-system-registers/ttbr0_el1)
+ * ASID:  bits [63:48]
+ * BADDR: bits [47:1]
+ * CnP:   bit  [0]
+ */
+uint64_t QFLEX_GET_ARCH(pid)(CPUState *cs) { 
+	int curr_el = arm_current_el(ENV(cs)); // Necessary?
+	if(true /* TODO */) {
+		return ENV(cs)->ttbr0_el(curr_el) >> 48;
+	} else {
+		return ENV(cs)->ttbr1_el(curr_el) >> 48; 
+	}
+}

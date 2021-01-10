@@ -442,6 +442,10 @@ struct CPUState {
 
     /* track IOMMUs whose translations we've cached in the TCG TLB */
     GArray *iommu_notifiers;
+
+#if defined(QFLEX) && defined(ARMFLEX)
+	void* armflex;
+#endif
 };
 
 typedef QTAILQ_HEAD(CPUTailQ, CPUState) CPUTailQ;

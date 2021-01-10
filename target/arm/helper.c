@@ -12857,16 +12857,30 @@ void aarch64_sve_change_el(CPUARMState *env, int old_el,
 
 #ifdef CONFIG_QFLEX
 #include "qflex-helper.h"
-uint64_t *vaddr_to_paddr(CPUState *cs, uint64_t vaddr) {
-	// MemTxAttrs attrs = {};
-	// uint64_t paddr = arm_cpu_get_phys_page_attrs_debug(cs, vaddr, &attrs);
-	uint64_t *paddr;
-	CPUARMState *env = cs->env_ptr;
-	MMUAccessType access_type = MMU_DATA_LOAD;
+uint64_t vaddr_to_paddr(CPUState *cs, uint64_t vaddr, MMUAccessType access_type) {
+    ARMCPU *cpu = ARM_CPU(cs);
+    CPUARMState *env = &cpu->env;
+	uint64_t phys_addr;
+    target_ulong page_size;
+    int prot;
+    bool ret;
+    ARMMMUFaultInfo fi = {};
+    ARMMMUIdx mmu_idx = arm_mmu_idx(env);
+	MemTxAttrs attrs = (MemTxAttrs) {};
 
-	paddr = tlb_vaddr_to_host(env, vaddr, access_type, cpu_mmu_index(env, access_type == MMU_INST_FETCH));
+    ret = get_phys_addr(&cpu->env, addr, access_type, mmu_idx,
+                        &phys_addr, &attrs, &prot, &page_size, &fi, NULL);
+	if(ret) {
+		return -1;
+	}
+ 
+	return phys_addr;
+}
 
-	return paddr;
+int qflex_get_pid(CPUState *cs) {
+	ARMCPU *cpu = ARM_CPU(cs);
+	CPUARMState *env = &cpu->env;
+	env->ttbr0_el[0];
 }
 
 #endif

@@ -12,6 +12,10 @@ typedef struct ArmflexState {
     bool gen_sim_trace; // Will generate trace for Chisel to run
 } ArmflexState;
 
+typedef struct ArmflexCPU {
+	
+}
+
 extern ArmflexState armflexState;
 
 static void armflex_init(bool run, bool enabled, bool gen_sim_trace) {
@@ -24,6 +28,7 @@ static inline void armflex_update_running(bool run) { armflexState.running = run
 static inline bool armflex_is_running(void) { return armflexState.enabled && armflexState.running; }
 static inline bool armflex_in_sim(void) { return armflexState.enabled && armflexState.sim;  }
 
+void armflex_check_memaccess(uint64_t addr, int cpu_index, int type);
 
 /* The following functions are architecture specific, so they are
  * in the architecture target directory.
@@ -76,7 +81,7 @@ typedef struct ArmflexCommitTrace {
 
 extern ArmflexCommitTrace currentCommitInst;
 
-/** Serializes the ARMFLEX architectural state to be transfered in a buffer.
+/** Serializes the ARMFLEX architectural state to be transfered with protobuf.
  * @brief armflex_(un)serialize_archstate
  * @param armflex The cpu state
  * @param buffer  The buffer
@@ -100,7 +105,7 @@ void armflex_unpack_archstate(ArmflexArchState *armflex, CPUState *cpu);
 
 /**
  * @brief armflex_get_load_addr
- * Translates from guest virtual address to host physical address
+ * Translates from guest virtual address to host virtual address
  * NOTE: In case of FAULT, the caller should:
  *          1. Trigger transplant back from FPGA
  *          2. Reexecute instruction
@@ -108,10 +113,10 @@ void armflex_unpack_archstate(ArmflexArchState *armflex, CPUState *cpu);
  * @param cpu               Working CPU
  * @param addr              Guest Virtual Address to translate
  * @param acces_type        Access type: LOAD/STORE/INSTR FETCH
- * @param hpaddr            Return virtual physical address associated
+ * @param hpaddr            Return Host virtual address associated
  * @return                  uint64_t of value at guest address
  */
-bool armflex_get_load_addr(CPUState *cpu, uint64_t addr, MMUAccessType access_type,  uint64_t *hpaddr);
+bool armflex_get_paddr(CPUState *cpu, uint64_t addr, MMUAccessType access_type,  uint64_t *hpaddr);
 
 /**
  * @brief armflex_get_page Translates from guest virtual address to host virtual address
@@ -126,7 +131,7 @@ bool armflex_get_load_addr(CPUState *cpu, uint64_t addr, MMUAccessType access_ty
  * @param page_size         Returns page size
  * @return                  If 0: Success, else FAULT was generated
  */
-bool armflex_get_page(CPUState *cpu, uint64_t addr, MMUAccessType access_type,  uint64_t *host_phys_page, uint64_t *page_size);
+bool armflex_get_ppage(CPUState *cpu, uint64_t addr, MMUAccessType access_type,  uint64_t *host_phys_page, uint64_t *page_size);
 
 
 /* Messages betweem FPGA/Chisel and QEMU */

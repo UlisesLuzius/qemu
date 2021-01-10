@@ -23,31 +23,32 @@
  */
 
 /**
- * @brief HELPER(qflex_ldst_done)
- * Helper gets executed after a LD/ST was successfull
+ * @brief HELPER(qflex_mem_trace)
+ * Helper gets executed before a LD/ST
  */
-void HELPER(qflex_ldst_done)(CPUARMState* env, uint64_t addr, uint64_t isStore) {
+void HELPER(qflex_mem_trace)(CPUARMState* env, uint64_t addr, uint64_t type) {
 	CPUState *cs = CPU(env_archcpu(env));
-	qflex_log_mask(QFLEX_LOG_LDST, "CPU%u:%lu:0x%016lx\n", cs->cpu_index, isStore, addr);
+	qflex_log_mask(QFLEX_LOG_LDST, "[MEM]CPU%u:%lu:0x%016lx\n", cs->cpu_index, type, addr);
 
-	if(qflex_mem_trace_is_running()) {
+	if(qflex_mem_trace_gen_trace()) {
 		uint64_t paddr = *((uint64_t *) vaddr_to_paddr(cs, addr));
-		qflex_mem_trace_memaccess(addr, paddr, cs->cpu_index, true, isStore);
+		qflex_mem_trace_memaccess(addr, paddr, cs->cpu_index, type);
 	}
-}
-
-/**
- * @brief HELPER(qflex_fetch_pc)
- * Helper gets executed after instruction has been fetched
- */
-void HELPER(qflex_fetch_pc)(CPUARMState* env, uint64_t pc) {
-	if(qflex_mem_trace_is_running()) {
-		CPUState *cs = CPU(env_archcpu(env));
-		uint64_t paddr = *((uint64_t *) vaddr_to_paddr(cs, pc));
-		qflex_mem_trace_memaccess(pc, paddr, cs->cpu_index, false, 0);
+#ifdef CONFIG_ARMFLEX
+	if(armflex_is_running()) {
+		if(type != MMU_INST_FETCH) {
+			armflex_synchronize_page(addr, cs, type);
+		}
 	}
+	if(armflex_gen_verification()) {
+		if(type == MMU_INST_FETCH) {
+			armflex_verification_gen_state();
+		} else {
+			armflex_verification_add_mem();
+		}
+	}
+#endif
 }
-
 
 /**
  * @brief HELPER(qflex_executed_instruction)
@@ -172,7 +173,7 @@ void HELPER(qflex_exception_return)(CPUARMState *env) { return; }
 /* Empty GETTERs in case CONFIG_QFLEX is disabled.
  * To see real functions, see original file (op_helper/helper/helper-a64.c)
  */
-uint64_t *vaddr_to_paddr(CPUState *cs, uint64_t vaddr) {
-	return NULL;
+uint64_t vaddr_to_paddr(CPUState *cs, uint64_t vaddr, MMUAccessType access_type) {
+	return -1;
 }
 #endif

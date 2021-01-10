@@ -15,24 +15,36 @@
 #include "qflex/qflex-log.h"
 #include "qflex/qflex-models.h"
 
+// ------ CHECK --------
+
+
+
 // ------ TRACE --------
 static size_t total_insts = 0;
 static size_t total_mem = 0;
+static size_t total_ld = 0;
+static size_t total_st = 0;
 static size_t total_trace_insts = 0;
-static bool is_running = false;
+static bool gen_helper= false;
+static bool gen_trace = false;
 
 void qflex_mem_trace_init(void) {
 	total_insts = 0;
     total_mem = 0;
-	is_running = false;
+	gen_helper = false;
+	gen_trace = false;
 }
 
-void qflex_mem_trace_memaccess(uint64_t addr, uint64_t hwaddr, uint64_t pid, bool isData, bool isStore) {
+void qflex_mem_trace_memaccess(uint64_t addr, uint64_t hwaddr, uint64_t pid, uint64_t type) {
 	FILE *logfile = qemu_log_lock();
-	qemu_log("CPU%lu:%u:%u:0x%016lx:0x%016lx\n", pid, isData, isStore, addr, hwaddr);
+	qemu_log("CPU%lu:%lu:0x%016lx:0x%016lx\n", pid, type, addr, hwaddr);
 	qemu_log_unlock(logfile);
 
-	if(isData) total_mem++; else total_insts++;
+	switch(type) {
+		case MMU_DATA_LOAD: total_ld++; total_mem++; break;
+		case MMU_DATA_STORE: total_st++; total_mem++; break;
+		case MMU_INST_FETCH: total_insts++; break;
+	}
 
 	if(total_insts >= total_trace_insts) {
 		qflex_mem_trace_log_direct();
@@ -43,12 +55,14 @@ void qflex_mem_trace_memaccess(uint64_t addr, uint64_t hwaddr, uint64_t pid, boo
 
 void qflex_mem_trace_start(size_t nb_insn) { 
 	total_trace_insts = nb_insn;
-	is_running = true; 
+	gen_helper = true; 
+	gen_trace = true;
 	qflex_tb_flush();
 }
 
 void qflex_mem_trace_stop(void) {
-	is_running = false;
+	gen_helper = false;
+	gen_trace = false;
 	qflex_tb_flush();
 }
 
@@ -57,7 +71,8 @@ void qflex_mem_trace_end(void) {
     qflex_tb_flush();
 }
 
-bool qflex_mem_trace_is_running(void) { return is_running; }
+bool qflex_mem_trace_gen_helper(void) { return gen_helper; }
+bool qflex_mem_trace_gen_trace(void) { return gen_trace; }
 
 void qflex_mem_trace_log_stats(char *buffer, size_t max_size) { 
 	size_t tot_chars;
@@ -75,4 +90,5 @@ void qflex_mem_trace_log_direct(void) {
    qflex_mem_trace_log_stats(str, 256);
    qemu_log("%s", str);
 }
+
 // ------ END TRACE --------

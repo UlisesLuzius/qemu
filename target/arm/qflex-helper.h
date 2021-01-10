@@ -14,7 +14,7 @@
  */
 
 /* 
- * returns 'NULL' on permission fault or on failure 
+ * returns '-1' on permission fault or on failure 
  */
-uint64_t *vaddr_to_paddr(CPUState *cs, uint64_t vaddr);
+uint64_t vaddr_to_paddr(CPUState *cs, uint64_t vaddr, MMUAccessType access_type);
 #endif /* QFLEX_HELPER_H */

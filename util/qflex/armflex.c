@@ -12,3 +12,7 @@ void armflex_trace_start(size_t nb_insn) {
 	armflex.running = true;
 	qflex_tb_flush();
 }
+
+void armflex_synchronize_page(addr, cs, type) {
+
+}

@@ -39,7 +39,8 @@ void qflex_mem_trace_init(void) {
 
 void qflex_mem_trace_memaccess(uint64_t addr, uint64_t hwaddr, uint64_t pid, uint64_t type) {
 	FILE *logfile = qemu_log_lock();
-	qemu_log("CPU%llu:%llu:0x%016llx:0x%016llx\n", pid, type, addr, hwaddr);
+	qemu_log("CPU%"PRIu64":%"PRIu64":0x%016"PRIx64":0x%016"PRIx64"\n", 
+			 pid, type, addr, hwaddr);
 	qemu_log_unlock(logfile);
 
 	switch(type) {

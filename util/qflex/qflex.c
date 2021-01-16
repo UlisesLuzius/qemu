@@ -47,13 +47,13 @@ void qflex_api_values_init(CPUState *cpu) {
 
 int qflex_prologue(CPUState *cpu) {
     int ret = 0;
-    qflex_log_mask(QFLEX_LOG_GENERAL, "QFLEX: PROLOGUE START:%08llx\n"
+    qflex_log_mask(QFLEX_LOG_GENERAL, "QFLEX: PROLOGUE START:%08"PRIx64"\n"
                    "    -> Skips initial snapshot load long interrupt routine to normal user program\n", QFLEX_GET_ARCH(pc)(cpu));
     qflex_update_exec_type(PROLOGUE);
     while(!qflex_is_prologue_done()) {
         ret = qflex_cpu_step(cpu);
     }
-    qflex_log_mask(QFLEX_LOG_GENERAL, "QFLEX: PROLOGUE END  :%08llx\n", QFLEX_GET_ARCH(pc)(cpu));
+    qflex_log_mask(QFLEX_LOG_GENERAL, "QFLEX: PROLOGUE END  :%08"PRIx64"\n", QFLEX_GET_ARCH(pc)(cpu));
     qflex_update_inst_done(false);
     return ret;
 }

@@ -33,9 +33,9 @@ static void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP,
 static void armflex_trace_protobuf_close(ArmflexCommitTraceP *traceP,
 							  void **stream) {
 	// Free allocated fields
-	free (traceP->mem_addr);
-	free (traceP->mem_data);
-	free(stream);
+	free(traceP->mem_addr);
+	free(traceP->mem_data);
+	free(*stream);
 }
 
 static void armflex_pack_protobuf_trace(ArmflexCommitTrace *trace,

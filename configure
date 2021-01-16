@@ -8090,6 +8090,7 @@ fi
 # ARMFLEX
 if test "$armflex" = "yes" ; then
   echo "CONFIG_ARMFLEX=y" >> $config_host_mak
+  echo "LIBS+= -lprotobuf-c" >> $config_host_mak
 fi
 ######################
 
@@ -8237,6 +8238,12 @@ fi
 
 if test "$ccache_cpp2" = "yes"; then
   echo "export CCACHE_CPP2=y" >> $config_host_mak
+fi
+
+if test "$qflex" = "yes" ; then
+  if test "$armflex" = "yes" ; then
+	  echo "" >> $config_host_mak
+  fi
 fi
 
 # If we're using a separate build tree, set it up now.

@@ -6,6 +6,8 @@
 #include "qemu/osdep.h"
 #include "qemu/thread.h"
 
+#define PAGE_SIZE 4096
+
 typedef struct ArmflexConfig {
     bool enabled;
     bool running;

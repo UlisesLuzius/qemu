@@ -30,7 +30,7 @@
  */
 void HELPER(qflex_mem_trace)(CPUARMState* env, uint64_t addr, uint64_t type) {
 	CPUState *cs = CPU(env_archcpu(env));
-	qflex_log_mask(QFLEX_LOG_LDST, "[MEM]CPU%u:%llu:0x%016llx\n", cs->cpu_index, type, addr);
+	qflex_log_mask(QFLEX_LOG_LDST, "[MEM]CPU%u:%"PRIu64":0x%016"PRIx64"\n", cs->cpu_index, type, addr);
 
 	if(qflex_mem_trace_gen_trace()) {
 		uint64_t paddr = *((uint64_t *) gva_to_hva(cs, addr, type));
@@ -134,7 +134,7 @@ static inline void qflex_cmds(uint64_t nop_op) {
 void HELPER(qflex_magic_insn)(CPUARMState *env, uint64_t nop_op) {
     assert(nop_op >= 90);
     assert(nop_op <= 127);
-    qflex_log_mask(QFLEX_LOG_MAGIC_INSN, "MAGIC_INST:%llu\n", nop_op);
+    qflex_log_mask(QFLEX_LOG_MAGIC_INSN, "MAGIC_INST:%"PRIu64"\n", nop_op);
 
     // CPUState *cs = CPU(env_archcpu(env));
  

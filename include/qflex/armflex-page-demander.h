@@ -58,6 +58,10 @@ typedef struct InvertedPageTable {
 } InvertedPageTable;
 
 
+/* Call this function when the armflex core has evicted an entry
+ */
+int armflex_evict_page(CPUState *cpu, uint64_t ipt_bits, void *page);
+	
 /* Call this function when the armflex core requests a new page
  */
 int armflex_get_page(CPUState *cpu, uint64_t vaddr, int type);

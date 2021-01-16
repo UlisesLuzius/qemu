@@ -114,6 +114,14 @@ static void IPTHvp_evict_Gvp(uint64_t hvp, uint64_t ipt_bits) {
 	}
 }
 
+int armflex_evict_page(CPUState *cpu, uint64_t ipt_bits, void *page) {
+	uint64_t vaddr = IPT_GET_VA(ipt_bits);
+	uint64_t hvp = gva_to_hva(cpu, vaddr & PAGE_MASK, DATA_LOAD);
+	memcpy((void *) hvp, page, PAGE_SIZE);
+	IPTHvp_evict_Gvp(hvp, ipt_bits);
+	return 0;
+}
+
 int armflex_get_page(CPUState *cpu, uint64_t vaddr, int type) {
 	uint64_t hvp = gva_to_hva(cpu, vaddr & PAGE_MASK, type) ;
 	int pid = QFLEX_GET_ARCH(pid)(cpu);

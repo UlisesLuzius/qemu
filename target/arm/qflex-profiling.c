@@ -83,7 +83,7 @@ qflex_profile_t qflex_profile_stats = {
 
 const char* qflex_profile_get_string_l1h(L1H l1h) {
     const char* name = "UNDEF";
-    if( 0 <= l1h && l1h < L1H_NR) {
+    if(l1h < L1H_NR) {
         name = l1h_items[l1h].name;
     }
     return name;
@@ -91,7 +91,7 @@ const char* qflex_profile_get_string_l1h(L1H l1h) {
 
 const char* qflex_profile_get_string_l2h(L2H l2h) {
     const char* name = "UNDEF";
-    if( 0 <= l2h && l2h < L2H_NR) {
+    if(l2h < L2H_NR) {
         name = l2h_items[l2h].name;
     }
     return name;
@@ -99,7 +99,7 @@ const char* qflex_profile_get_string_l2h(L2H l2h) {
 
 const char* qflex_profile_get_string_ldst(LDST_t ldst) {
     const char* name = "UNDEF";
-    if( 0 <= ldst && ldst < LDST_NR) {
+    if(ldst < LDST_NR) {
         name = ldst_items[ldst].name;
     }
     return name;

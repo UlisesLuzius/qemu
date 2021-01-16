@@ -7,7 +7,7 @@ void qflex_mem_trace_start(size_t nb_insn);
 void qflex_mem_trace_stop(void);
 void qflex_mem_trace_end(void);
 void qflex_mem_trace_memaccess(uint64_t addr, uint64_t hwaddr, 
-						   uint64_t pid, bool isData, bool isStore);
+						   uint64_t pid, uint64_t type);
 
 bool qflex_mem_trace_gen_helper(void);
 bool qflex_mem_trace_gen_trace(void);

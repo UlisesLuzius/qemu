@@ -11,6 +11,8 @@
 #include "qemu/option_int.h"
 #include "qemu/main-loop.h"
 
+#include "hw/core/cpu.h"
+
 #include "qflex/qflex.h"
 #include "qflex/qflex-log.h"
 #include "qflex/qflex-models.h"
@@ -37,7 +39,7 @@ void qflex_mem_trace_init(void) {
 
 void qflex_mem_trace_memaccess(uint64_t addr, uint64_t hwaddr, uint64_t pid, uint64_t type) {
 	FILE *logfile = qemu_log_lock();
-	qemu_log("CPU%lu:%lu:0x%016lx:0x%016lx\n", pid, type, addr, hwaddr);
+	qemu_log("CPU%llu:%llu:0x%016llx:0x%016llx\n", pid, type, addr, hwaddr);
 	qemu_log_unlock(logfile);
 
 	switch(type) {

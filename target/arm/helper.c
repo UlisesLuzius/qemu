@@ -12857,7 +12857,7 @@ void aarch64_sve_change_el(CPUARMState *env, int old_el,
 
 #ifdef CONFIG_QFLEX
 #include "qflex-helper.h"
-uint64_t vaddr_to_paddr(CPUState *cs, uint64_t vaddr, MMUAccessType access_type) {
+uint64_t gva_to_hva_arch(CPUState *cs, uint64_t vaddr, MMUAccessType access_type) {
     ARMCPU *cpu = ARM_CPU(cs);
     CPUARMState *env = &cpu->env;
 	uint64_t phys_addr;
@@ -12868,19 +12868,13 @@ uint64_t vaddr_to_paddr(CPUState *cs, uint64_t vaddr, MMUAccessType access_type)
     ARMMMUIdx mmu_idx = arm_mmu_idx(env);
 	MemTxAttrs attrs = (MemTxAttrs) {};
 
-    ret = get_phys_addr(&cpu->env, addr, access_type, mmu_idx,
+    ret = get_phys_addr(&cpu->env, vaddr, access_type, mmu_idx,
                         &phys_addr, &attrs, &prot, &page_size, &fi, NULL);
 	if(ret) {
 		return -1;
 	}
  
 	return phys_addr;
-}
-
-int qflex_get_pid(CPUState *cs) {
-	ARMCPU *cpu = ARM_CPU(cs);
-	CPUARMState *env = &cpu->env;
-	env->ttbr0_el[0];
 }
 
 #endif

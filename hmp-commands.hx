@@ -1884,16 +1884,17 @@ SRST
 ERST
 
     {
-        .name       = "armflex-gen-trace",
+        .name       = "armflex-gen-verification-start",
         .args_type  = "nb_insn:i",
         .params     = "nb_insn",
         .help       = "start tracing of state and modified pages",
-        .cmd        = hmp_armflex_gen_trace,
+        .cmd        = hmp_armflex_gen_verification_start,
     },
 
 SRST
-``armflex-gen-trace`` *nb_insn*
-  Run state tracing for *nb_insn*.
+``armflex-gen-verification-start`` *nb_insn*
+  Run state tracing for *nb_insn*, this state can be used by
+  the Chisel verification infrastructure to test for correctness.
 ERST
 
 #endif

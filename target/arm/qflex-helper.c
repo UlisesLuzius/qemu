@@ -10,9 +10,11 @@
 #include "qflex/qflex-helper-a64.h"
 #include "qflex/qflex-models.h"
 
-#ifdef CONFIG_FA_QFLEX
-#include "qflex/fa-qflex.h"
-#endif /* CONFIG_FA_QFLEX */
+#ifdef CONFIG_ARMFLEX
+#include "qflex/armflex.h"
+#include "qflex/armflex-verification.h"
+#include "qflex/armflex-page-demander.h"
+#endif /* CONFIG_ARMFLEX */
 
 /* TCG helper functions. (See exec/helper-proto.h  and target/arch/helper-a64.h)
  * This one expands prototypes for the helper functions.
@@ -28,23 +30,23 @@
  */
 void HELPER(qflex_mem_trace)(CPUARMState* env, uint64_t addr, uint64_t type) {
 	CPUState *cs = CPU(env_archcpu(env));
-	qflex_log_mask(QFLEX_LOG_LDST, "[MEM]CPU%u:%lu:0x%016lx\n", cs->cpu_index, type, addr);
+	qflex_log_mask(QFLEX_LOG_LDST, "[MEM]CPU%u:%llu:0x%016llx\n", cs->cpu_index, type, addr);
 
 	if(qflex_mem_trace_gen_trace()) {
-		uint64_t paddr = *((uint64_t *) vaddr_to_paddr(cs, addr));
+		uint64_t paddr = *((uint64_t *) gva_to_hva(cs, addr, type));
 		qflex_mem_trace_memaccess(addr, paddr, cs->cpu_index, type);
 	}
 #ifdef CONFIG_ARMFLEX
 	if(armflex_is_running()) {
 		if(type != MMU_INST_FETCH) {
-			armflex_synchronize_page(addr, cs, type);
+			armflex_synchronize_page(cs, addr, type);
 		}
 	}
 	if(armflex_gen_verification()) {
 		if(type == MMU_INST_FETCH) {
-			armflex_verification_gen_state();
+			armflex_verification_gen_state(cs, addr);
 		} else {
-			armflex_verification_add_mem();
+			armflex_verification_add_mem(cs, addr);
 		}
 	}
 #endif
@@ -132,7 +134,7 @@ static inline void qflex_cmds(uint64_t nop_op) {
 void HELPER(qflex_magic_insn)(CPUARMState *env, uint64_t nop_op) {
     assert(nop_op >= 90);
     assert(nop_op <= 127);
-    qflex_log_mask(QFLEX_LOG_MAGIC_INSN, "MAGIC_INST:%lu\n", nop_op);
+    qflex_log_mask(QFLEX_LOG_MAGIC_INSN, "MAGIC_INST:%llu\n", nop_op);
 
     // CPUState *cs = CPU(env_archcpu(env));
  
@@ -173,7 +175,7 @@ void HELPER(qflex_exception_return)(CPUARMState *env) { return; }
 /* Empty GETTERs in case CONFIG_QFLEX is disabled.
  * To see real functions, see original file (op_helper/helper/helper-a64.c)
  */
-uint64_t vaddr_to_paddr(CPUState *cs, uint64_t vaddr, MMUAccessType access_type) {
+uint64_t gva_to_hva_arch(CPUState *cs, uint64_t vaddr, MMUAccessType access_type) {
 	return -1;
 }
 #endif

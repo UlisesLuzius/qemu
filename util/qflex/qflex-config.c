@@ -57,42 +57,15 @@ QemuOptsList qemu_armflex_opts = {
         {
             .name = "enable",
             .type = QEMU_OPT_BOOL,
-        }, {
-            .name = "mode",
-            .type = QEMU_OPT_STRING,
-        }, {
-            .name = "sim",
-            .type = QEMU_OPT_BOOL,
         },
         { /* end of list */ }
     },
 };
 
-static void qflex_armflex_configure(QemuOpts *opts, Error **errp) {
-    const char *mode;
-	bool enabled, sim, run;
-	int mode;
-
+static void armflex_configure(QemuOpts *opts, Error **errp) {
+	bool enable;
     enable = qemu_opt_get_bool(opts, "enable", false);
-    mode = qemu_opt(opts, "mode");
-    if(!mode) {
-        mode = MAGIC;
-		run = false;
-    } else if (!strcmp(mode, "direct")) {
-        mode = DIRECT;
-		run = true;
-    } else if (!strcmp(mode, "magic")) {
-        mode = MAGIC;
-		run = false;
-    } else {
-        error_setg(errp, "ARMFLEX: Mode specified '%s' is neither full|magic", mode);
-    }
-
-    sim = qemu_opt_get_bool(opts, "sim", false);
-    if(!enabled && sim) {
-        error_setg(errp, "ARMFLEX: Can't enable simulator if ARMFLEX is disabled");
-    }
-	armflex_init(run, enabled, sim);
+	armflex_init(false, enable);
 
 }
 #endif /* CONFIG_ARMFLEX */
@@ -155,11 +128,11 @@ int qflex_parse_opts(int index, const char *optarg, Error **errp) {
 #endif
 #ifdef CONFIG_ARMFLEX
 	case QEMU_OPTION_armflex:
-		armflex_opts = qemu_opts_parse_noisily(qemu_find_opts("armflex"),
+		opts = qemu_opts_parse_noisily(qemu_find_opts("armflex"),
 											   optarg, false);
-		if (!armflex_opts) { exit(1); }
-		armflex_configure(armflex_opts, &error_abort);
-        qemu_opts_del(armflex_opts);
+		if (!opts) { exit(1); }
+		armflex_configure(opts, &error_abort);
+        qemu_opts_del(opts);
 		break;
 #endif /* CONFIG_ARMFLEX */
 	default:

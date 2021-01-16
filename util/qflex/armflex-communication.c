@@ -6,23 +6,28 @@
 #include <unistd.h>
 #include <semaphore.h>
 #include <string.h>
-#include "shmem.h"
+
+#include "qemu/osdep.h"
+#include "qemu/thread.h"
+
+#include "qflex/qflex-log.h"
 
 #include "qflex/armflex.h"
-#include "qflex/ArmflexArchState.pb-c.h"
+#include "qflex/armflex-communication.h"
+#include "qflex/armflex.pb-c.h"
 
 int armflex_file_region_open(const char *filename, size_t size, ArmflexFile *file) {
     char filepath[PATH_MAX];
     int fd = -1;
     void *region;
     qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
-                   "Writing file : "armflex_ROOT_DIR"/%s\n", filename);
-    if (mkdir(armflex_ROOT_DIR, 0777) && errno != EEXIST) {
+                   "Writing file : "ARMFLEX_ROOT_DIR"/%s\n", filename);
+    if (mkdir(ARMFLEX_ROOT_DIR, 0777) && errno != EEXIST) {
         qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
-                       "'mkdir "armflex_ROOT_DIR"' failed\n");
+                       "'mkdir "ARMFLEX_ROOT_DIR"' failed\n");
         return 1;
     }
-    snprintf(filepath, PATH_MAX, armflex_ROOT_DIR"/%s", filename);
+    snprintf(filepath, PATH_MAX, ARMFLEX_ROOT_DIR"/%s", filename);
     if((fd = open(filepath, O_RDWR | O_CREAT | O_TRUNC, 0666)) == -1) {
         qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
                        "Program Page dest file: open failed\n"
@@ -84,22 +89,22 @@ void *armflex_pack_protobuf(ArmflexArchState *armflex, size_t *size) {
 
 	// Init fields
 	state.n_xregs = 32;
-	state.xregs = malloc (sizeof (uint64_t) * 32); // Allocate memory to store xregs
+	state.xregs = malloc(sizeof(uint64_t) * 32); // Allocate memory to store xregs
 	assert(state.xregs);
 
 	// armflex struct -> protobuf struct
-	memcpy(&state->xregs, &armflex->xregs, sizeof(uint64_t) * 32);
-	state->pc = armflex->pc;
-	state->sp = armflex->sp;
-	state->nzcv = armflex->nzcv;
+	memcpy(state.xregs, armflex->xregs, sizeof(uint64_t) * 32);
+	state.pc = armflex->pc;
+	state.sp = armflex->sp;
+	state.nzcv = armflex->nzcv;
 
 	// protobuf struct -> protobuf stream
-	len = armflex_arch_state_p__get_packed_size (&state); // This is calculated packing length
+	size_t len = armflex_arch_state_p__get_packed_size (&state); // This is calculated packing length
 	stream = malloc (len);                                // Allocate required serialized buffer length 
 	armflex_arch_state_p__pack (&state, stream);          // Pack the data
 
 	// Free allocated fields
-	free (armflex_p.xregs);
+	free (state.xregs);
 
 	// Return stream
 	*size = len;
@@ -114,8 +119,8 @@ void armflex_unpack_protobuf(ArmflexArchState *armflex, void *stream, size_t siz
 
 	// protobuf stream -> protobuf struct
 	ArmflexArchStateP *state;
-	state = armflex_arch_state_p_unpack(NULL, size, stream); // Deserialize the serialized input
-	if (proto == NULL) {
+	state = armflex_arch_state_p__unpack(NULL, size, stream); // Deserialize the serialized input
+	if (state == NULL) {
 		fprintf(stderr, "Error unpacking ARMFLEX state protobuf message\n");
 		exit(1);
 	}
@@ -127,5 +132,6 @@ void armflex_unpack_protobuf(ArmflexArchState *armflex, void *stream, size_t siz
 	armflex->nzcv = state->nzcv;
 
 	// Free protobuf struct
-	armflex_arch_state_p_free_unpacked(state, NULL); // Free the message from unpack()
+	armflex_arch_state_p__free_unpacked(state, NULL); // Free the message from unpack()
 }
+

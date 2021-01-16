@@ -1,4 +1,7 @@
-#include "qflex/qflex.h"
+#include "qemu/osdep.h"
+#include "cpu.h"
+
+#include "qflex/qflex-arch.h"
 #include "qflex/armflex.h"
 
 void armflex_pack_archstate(CPUState *cpu, ArmflexArchState *armflex) {
@@ -16,12 +19,12 @@ void armflex_pack_archstate(CPUState *cpu, ArmflexArchState *armflex) {
 	armflex->nzcv = nzcv;
 }
 
-void armflex_unpack_archstate(CPUState *cpu, ArmflexArchState *armflex) {
+void armflex_unpack_archstate(ArmflexArchState *armflex, CPUState *cpu) {
     CPUARMState *env = cpu->env_ptr;
 
     memcpy(&env->xregs, &armflex->xregs, 32*sizeof(uint64_t));
     env->pc = armflex->pc;
-    env->sp_el[QFLEX_GET_ARCH(el)(cpu)] = armflex->sp_el;
+    env->sp_el[QFLEX_GET_ARCH(el)(cpu)] = armflex->sp;
 
     uint32_t nzcv = armflex->nzcv;
     env->CF = (nzcv & ARCH_PSTATE_CF_MASK) ? 1 : 0;

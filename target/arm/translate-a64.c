@@ -2315,14 +2315,14 @@ static void gen_load_exclusive(DisasContext *s, int rt, int rt2,
         } else {
             /* The pair must be single-copy atomic for *each* doubleword, not
                the entire quadword, however it must be quadword aligned.  */
-			GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_mem_trace), 
-							 cpu_env, addr + 8, (TCGv_i64) MMU_DATA_LOAD);
             memop |= MO_64;
             tcg_gen_qemu_ld_i64(cpu_exclusive_val, addr, idx,
                                 memop | MO_ALIGN_16);
 
             TCGv_i64 addr2 = tcg_temp_new_i64();
             tcg_gen_addi_i64(addr2, addr, 8);
+			GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_mem_trace), 
+							 cpu_env, addr2, (TCGv_i64) MMU_DATA_LOAD);
             tcg_gen_qemu_ld_i64(cpu_exclusive_high, addr2, idx, memop);
             tcg_temp_free_i64(addr2);
 
@@ -2488,11 +2488,11 @@ static void gen_compare_and_swap_pair(DisasContext *s, int rs, int rt,
         /* Load the two words, in memory order.  */
 		GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_mem_trace), 
 						 cpu_env, clean_addr, (TCGv_i64) MMU_DATA_LOAD);
-		GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_mem_trace), 
-						 cpu_env, clean_addr + 8, (TCGv_i64) MMU_DATA_LOAD);
         tcg_gen_qemu_ld_i64(d1, clean_addr, memidx,
                             MO_64 | MO_ALIGN_16 | s->be_data);
         tcg_gen_addi_i64(a2, clean_addr, 8);
+		GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_mem_trace), 
+						 cpu_env, a2, (TCGv_i64) MMU_DATA_LOAD);
         tcg_gen_qemu_ld_i64(d2, a2, memidx, MO_64 | s->be_data);
 
         /* Compare the two words, also in memory order.  */
@@ -2506,7 +2506,7 @@ static void gen_compare_and_swap_pair(DisasContext *s, int rs, int rt,
 		GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_mem_trace), 
 						 cpu_env, clean_addr, (TCGv_i64) MMU_DATA_STORE);
 		GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_mem_trace), 
-						 cpu_env, clean_addr + 8, (TCGv_i64) MMU_DATA_STORE);
+						 cpu_env, a2, (TCGv_i64) MMU_DATA_STORE);
         tcg_gen_qemu_st_i64(c1, clean_addr, memidx, MO_64 | s->be_data);
         tcg_gen_qemu_st_i64(c2, a2, memidx, MO_64 | s->be_data);
         tcg_temp_free_i64(a2);

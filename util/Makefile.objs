@@ -67,5 +67,5 @@ util-obj-$(CONFIG_USER_ONLY) += selfmap.o
 
 ######################
 # Common libraries for QFLEX
-util-obj-y += qflex/
+util-obj-$(CONFIG_QFLEX) += qflex/
 ######################

@@ -29,12 +29,14 @@ void hmp_qflex_mem_trace_log_stats(Monitor *mon, const QDict *qdict) {
 }
 
 #ifdef CONFIG_ARMFLEX
+#include "qflex/armflex.h"
+#include "qflex/armflex-verification.h"
 void hmp_armflex_start(Monitor *mon, const QDict *qdict) {
-	armflex_start();
+	armflex_init(true, true);
 }
 
-void hmp_qflex_mem_trace_start(Monitor *mon, const QDict *qdict) {
+void hmp_armflex_gen_verification_start(Monitor *mon, const QDict *qdict) {
     size_t nb_insn = qdict_get_int(qdict, "nb_insn");
-    armflex_trace_start(nb_insn);
+    armflex_gen_verification_start(nb_insn);
 }
 #endif

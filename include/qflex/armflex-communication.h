@@ -1,6 +1,10 @@
 #ifndef ARMLEX_COMMUNICATION_H
 #define ARMLEX_COMMUNICATION_H
 
+#include "qflex/armflex.h"
+#include "qflex/armflex.pb-c.h"
+#include "qflex/armflex-verification.h"
+
 #define ARMFLEX_ROOT_DIR        "/dev/shm/qflex"
 
 typedef struct ArmflexFile {
@@ -29,6 +33,9 @@ void* armflex_open_cmd_shm(const char* name, size_t struct_size);
 /* ------ Protobuf ------ */
 void *armflex_pack_protobuf(ArmflexArchState *armflex, size_t *size);
 void armflex_unpack_protobuf(ArmflexArchState *armflex, void *stream, size_t size);
+void armflex_pack_protobuf_trace(ArmflexCommitTrace *trace, ArmflexCommitTraceP *traceP, uint8_t *stream);
+void armflex_trace_protobuf_close(ArmflexCommitTraceP *traceP, uint8_t *stream);
+void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP, uint8_t *stream, size_t *size);
 
 /* ---- Communication ---- */
 /* This contains utilities to communicate between
@@ -59,5 +66,6 @@ typedef struct ArmflexSimConfig_t {
 } ArmflexSimConfig_t;
 
 extern ArmflexSimConfig_t sim_cfg;
+
 
 #endif

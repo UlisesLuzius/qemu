@@ -135,3 +135,56 @@ void armflex_unpack_protobuf(ArmflexArchState *armflex, void *stream, size_t siz
 	armflex_arch_state_p__free_unpacked(state, NULL); // Free the message from unpack()
 }
 
+
+/* ----- PROTOBUF ------ */
+void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP,
+										uint8_t *stream, size_t *size) {
+	// Init fields
+	traceP->n_mem_addr = 4;
+	traceP->mem_addr = malloc (sizeof (uint64_t) * 4);
+	traceP->n_mem_data = 4;
+	traceP->mem_data = malloc (sizeof (uint64_t) * 4);
+	assert(traceP->mem_addr);
+	assert(traceP->mem_data);
+
+	// Init State
+	ArmflexArchStateP *state = traceP->state;
+	state->n_xregs = 32;
+	state->xregs = malloc (sizeof (uint64_t) * 32);
+	assert(state->xregs);
+
+	*size = armflex_commit_trace_p__get_packed_size (traceP); // This is calculated packing length
+	//*stream = malloc(*size + 500);                               // Allocate required serialized buffer length 
+	//assert(stream);
+}
+
+void armflex_trace_protobuf_close(ArmflexCommitTraceP *traceP,
+										 uint8_t *stream) {
+	// Free allocated fields
+	free(traceP->mem_addr);
+	free(traceP->mem_data);
+	free(traceP->state->xregs);
+	//free(*stream);
+}
+
+void armflex_pack_protobuf_trace(ArmflexCommitTrace *trace,
+										ArmflexCommitTraceP *traceP, 
+										uint8_t *stream) {
+	// Pack Commit Trace
+	traceP->inst = trace->inst;
+	memcpy(traceP->mem_addr, trace->mem_addr, sizeof(uint64_t) * traceP->n_mem_addr);
+	memcpy(traceP->mem_data, trace->mem_data, sizeof(uint64_t) * traceP->n_mem_data);
+
+	// Pack Armflex State
+	ArmflexArchState *state = &trace->state;
+	ArmflexArchStateP *stateP = traceP->state;
+	memcpy(stateP->xregs, state->xregs, sizeof(uint64_t) * stateP->n_xregs);
+	stateP->pc = state->pc;
+	stateP->sp = state->sp;
+	stateP->nzcv = state->nzcv;
+
+	// protobuf struct -> protobuf stream
+	armflex_commit_trace_p__pack (traceP, stream); // Pack the data
+}
+
+

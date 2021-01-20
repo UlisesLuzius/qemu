@@ -33,8 +33,9 @@ void HELPER(qflex_mem_trace)(CPUARMState* env, uint64_t addr, uint64_t type) {
 	qflex_log_mask(QFLEX_LOG_LDST, "[MEM]CPU%u:%"PRIu64":0x%016"PRIx64"\n", cs->cpu_index, type, addr);
 
 	if(qflex_mem_trace_gen_trace()) {
-		uint64_t paddr = *((uint64_t *) gva_to_hva(cs, addr, type));
-		qflex_mem_trace_memaccess(addr, paddr, cs->cpu_index, type);
+		uint64_t paddr = gva_to_hva(cs, addr, type);
+		if(paddr != -1) 
+			qflex_mem_trace_memaccess(addr, paddr, cs->cpu_index, type);
 	}
 #ifdef CONFIG_ARMFLEX
 	if(armflex_is_running()) {

@@ -16,5 +16,7 @@
 /* 
  * returns '-1' on permission fault or on failure 
  */
+uint64_t gva_to_hva_arch_legacy(CPUState *cs, uint64_t vaddr, MMUAccessType access_type);
 uint64_t gva_to_hva_arch(CPUState *cs, uint64_t vaddr, MMUAccessType access_type);
+
 #endif /* QFLEX_HELPER_H */

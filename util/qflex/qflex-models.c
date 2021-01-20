@@ -56,6 +56,19 @@ void qflex_mem_trace_memaccess(uint64_t addr, uint64_t hwaddr, uint64_t pid, uin
 	}
 }
 
+
+void qflex_mem_trace_gen_helper_start(void) { 
+	gen_helper = true; 
+	gen_trace = false;
+	qflex_tb_flush();
+}
+
+void qflex_mem_trace_gen_helper_stop(void) {
+	gen_helper = false;
+	gen_trace = false;
+	qflex_tb_flush();
+}
+
 void qflex_mem_trace_start(size_t nb_insn) { 
 	total_trace_insts = nb_insn;
 	gen_helper = true; 

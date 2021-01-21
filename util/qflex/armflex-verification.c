@@ -20,8 +20,9 @@ static size_t max_inst = 0;
 static ArmflexCommitTrace traceState;
 static ArmflexCommitTraceP traceProbuf = ARMFLEX_COMMIT_TRACE_P__INIT;
 static ArmflexArchStateP stateProbuf = ARMFLEX_ARCH_STATE_P__INIT;
-static uint8_t streamProbuf[1024];
+static uint8_t *streamProtobuf;
 static size_t streamSize;
+static FILE* streamFile;
 
 /* ------ QEMU ------- */
 void armflex_gen_verification_start(size_t nb_insn) {
@@ -32,32 +33,33 @@ void armflex_gen_verification_start(size_t nb_insn) {
 	max_inst = nb_insn;
 	traceProbuf.state = &stateProbuf;
 
-
-	armflex_trace_protobuf_open(&traceProbuf, streamProbuf, &streamSize);
-	// armflex_write_protobuf_base_size(streamSize); // TODO
+	armflex_trace_protobuf_open(&traceProbuf, &streamProtobuf, &streamSize);
+	armflex_file_stream_open(&streamFile, "ArmflexVerificionBinary");
+	armflex_file_stream_write(streamFile, &streamSize, sizeof(streamSize));
 	qflex_mem_trace_gen_helper_start();
 }
 
 
-void armflex_verification_close(void) {
+void armflex_gen_verification_end(void) {
 	gen_trace = false;
 	curr_mem = 0;
 	inst_count = 0;
 	hasTrace = false;
 	gen_trace = false;
-	armflex_trace_protobuf_close(&traceProbuf, streamProbuf);
+	armflex_trace_protobuf_close(&traceProbuf, &streamProtobuf);
+	fclose(streamFile);
 	qflex_mem_trace_gen_helper_stop();
 }
 
-void armflex_verification_gen_state(CPUState* cpu, uint64_t addr) {
+void armflex_gen_verification_add_state(CPUState* cpu, uint64_t addr) {
 	if(hasTrace) {
 		// When hits next instruction, last instruction is done so 
 		// send the full instruction information
-		armflex_pack_protobuf_trace(&traceState, &traceProbuf, streamProbuf);
-		// armflex_write_protobuf(streamProbuf); // TODO
+		armflex_pack_protobuf_trace(&traceState, &traceProbuf, streamProtobuf);
+		armflex_file_stream_write(streamFile, streamProtobuf, streamSize);
 		curr_mem = 0;
 		if(inst_count >= max_inst) {
-			armflex_verification_close();
+			armflex_gen_verification_end();
 		}
 	}
 
@@ -70,7 +72,7 @@ void armflex_verification_gen_state(CPUState* cpu, uint64_t addr) {
 	inst_count++;
 }
 
-void armflex_verification_add_mem(CPUState* cpu, uint64_t addr) {
+void armflex_gen_verification_add_mem(CPUState* cpu, uint64_t addr) {
 	if(curr_mem == 4) { 
 		// No more mem insts slots left in CommitTrace struct
 		exit(1);

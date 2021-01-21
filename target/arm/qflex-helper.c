@@ -45,9 +45,9 @@ void HELPER(qflex_mem_trace)(CPUARMState* env, uint64_t addr, uint64_t type) {
 	}
 	if(armflex_gen_verification()) {
 		if(type == MMU_INST_FETCH) {
-			armflex_verification_gen_state(cs, addr);
+			armflex_gen_verification_add_state(cs, addr);
 		} else {
-			armflex_verification_add_mem(cs, addr);
+			armflex_gen_verification_add_mem(cs, addr);
 		}
 	}
 #endif

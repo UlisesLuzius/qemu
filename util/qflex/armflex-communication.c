@@ -16,6 +16,39 @@
 #include "qflex/armflex-communication.h"
 #include "qflex/armflex.pb-c.h"
 
+int armflex_file_stream_open(FILE **fp, const char *filename) {
+    char filepath[PATH_MAX];
+
+    qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+                   "Writing file : "ARMFLEX_ROOT_DIR"/%s\n", filename);
+    if (mkdir(ARMFLEX_ROOT_DIR, 0777) && errno != EEXIST) {
+        qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+                       "'mkdir "ARMFLEX_ROOT_DIR"' failed\n");
+        return 1;
+    }
+
+    snprintf(filepath, PATH_MAX, ARMFLEX_ROOT_DIR"/%s", filename);
+	*fp = fopen(filepath, "w");
+    if(!fp) {
+        qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+                       "ERROR: File stream open failed\n"
+                       "    filepath:%s\n", filepath);
+        return 1;
+    }
+
+    return 0;
+}
+
+int armflex_file_stream_write(FILE *fp, void *stream, size_t size) {
+	if(fwrite(stream, 1, size, fp) != size) {
+		fclose(fp);
+        qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+            "Error writing stream to file\n");
+        return 1;
+	}
+	return 0;
+}
+
 int armflex_file_region_open(const char *filename, size_t size, ArmflexFile *file) {
     char filepath[PATH_MAX];
     int fd = -1;
@@ -83,9 +116,9 @@ void* armflex_open_cmd_shm(const char* name, size_t struct_size){
 
 /* ------ Protobuf ------ */
 void *armflex_pack_protobuf(ArmflexArchState *armflex, size_t *size) {
+	void *stream;
 	ArmflexArchStateP state = 
 		ARMFLEX_ARCH_STATE_P__INIT;
-	void *stream;
 
 	// Init fields
 	state.n_xregs = 32;
@@ -100,7 +133,7 @@ void *armflex_pack_protobuf(ArmflexArchState *armflex, size_t *size) {
 
 	// protobuf struct -> protobuf stream
 	size_t len = armflex_arch_state_p__get_packed_size (&state); // This is calculated packing length
-	stream = malloc (len);                                // Allocate required serialized buffer length 
+	stream = malloc(len);
 	armflex_arch_state_p__pack (&state, stream);          // Pack the data
 
 	// Free allocated fields
@@ -136,9 +169,8 @@ void armflex_unpack_protobuf(ArmflexArchState *armflex, void *stream, size_t siz
 }
 
 
-/* ----- PROTOBUF ------ */
 void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP,
-										uint8_t *stream, size_t *size) {
+										uint8_t **stream, size_t *size) {
 	// Init fields
 	traceP->n_mem_addr = 4;
 	traceP->mem_addr = malloc (sizeof (uint64_t) * 4);
@@ -154,17 +186,17 @@ void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP,
 	assert(state->xregs);
 
 	*size = armflex_commit_trace_p__get_packed_size (traceP); // This is calculated packing length
-	//*stream = malloc(*size + 500);                               // Allocate required serialized buffer length 
-	//assert(stream);
+	*stream = malloc(*size + 1);                               // Allocate required serialized buffer length 
+	assert(stream);
 }
 
 void armflex_trace_protobuf_close(ArmflexCommitTraceP *traceP,
-										 uint8_t *stream) {
+										 uint8_t **stream) {
 	// Free allocated fields
 	free(traceP->mem_addr);
 	free(traceP->mem_data);
 	free(traceP->state->xregs);
-	//free(*stream);
+	free(*stream);
 }
 
 void armflex_pack_protobuf_trace(ArmflexCommitTrace *trace,

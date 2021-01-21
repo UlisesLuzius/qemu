@@ -10,10 +10,9 @@ typedef struct ArmflexCommitTrace {
 
 bool armflex_gen_verification(void);
 void armflex_gen_verification_start(size_t nb_insn);
+void armflex_gen_verification_end(void);
 
-void armflex_verification_open(FILE *fp);
-void armflex_verification_close(void);
-void armflex_verification_gen_state(CPUState* cpu, uint64_t addr);
-void armflex_verification_add_mem(CPUState* cpu, uint64_t addr);
+void armflex_gen_verification_add_state(CPUState* cpu, uint64_t addr);
+void armflex_gen_verification_add_mem(CPUState* cpu, uint64_t addr);
 
 #endif

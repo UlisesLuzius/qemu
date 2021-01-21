@@ -13,6 +13,9 @@ typedef struct ArmflexFile {
     size_t size;  // Size of region
 } ArmflexFile;
 
+int armflex_file_stream_open(FILE **fp, const char *filename);
+int armflex_file_stream_write(FILE *fp, void *stream, size_t size);
+	
 /* Open a communication struct passing file 
  * Not a variable size stream, can only push a single structure of pre-defined size
  * Returns ArmflexFile
@@ -34,8 +37,8 @@ void* armflex_open_cmd_shm(const char* name, size_t struct_size);
 void *armflex_pack_protobuf(ArmflexArchState *armflex, size_t *size);
 void armflex_unpack_protobuf(ArmflexArchState *armflex, void *stream, size_t size);
 void armflex_pack_protobuf_trace(ArmflexCommitTrace *trace, ArmflexCommitTraceP *traceP, uint8_t *stream);
-void armflex_trace_protobuf_close(ArmflexCommitTraceP *traceP, uint8_t *stream);
-void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP, uint8_t *stream, size_t *size);
+void armflex_trace_protobuf_close(ArmflexCommitTraceP *traceP, uint8_t **stream);
+void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP, uint8_t **stream, size_t *size);
 
 /* ---- Communication ---- */
 /* This contains utilities to communicate between

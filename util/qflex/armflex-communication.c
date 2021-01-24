@@ -172,10 +172,10 @@ void armflex_unpack_protobuf(ArmflexArchState *armflex, void *stream, size_t siz
 void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP,
 										uint8_t **stream, size_t *size) {
 	// Init fields
-	traceP->n_mem_addr = 4;
-	traceP->mem_addr = malloc (sizeof (uint64_t) * 4);
-	traceP->n_mem_data = 4;
-	traceP->mem_data = malloc (sizeof (uint64_t) * 4);
+	traceP->n_mem_addr = MAX_MEM_INSTS;
+	traceP->mem_addr = malloc (sizeof (uint64_t) * MAX_MEM_INSTS);
+	traceP->n_mem_data = MAX_MEM_INSTS;
+	traceP->mem_data = malloc (sizeof (uint64_t) * MAX_MEM_INSTS);
 	assert(traceP->mem_addr);
 	assert(traceP->mem_data);
 

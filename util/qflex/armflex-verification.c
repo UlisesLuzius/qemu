@@ -65,6 +65,9 @@ void armflex_gen_verification_add_state(CPUState* cpu, uint64_t addr) {
 
 	armflex_pack_archstate(cpu, &traceState.state);
 	uint64_t hva = gva_to_hva(cpu, addr, INST_FETCH);
+	if(hva == -1) {
+		return;
+	}
 	uint32_t inst = *((int32_t *) hva);
 	traceState.inst = inst;
 
@@ -73,13 +76,16 @@ void armflex_gen_verification_add_state(CPUState* cpu, uint64_t addr) {
 }
 
 void armflex_gen_verification_add_mem(CPUState* cpu, uint64_t addr) {
-	if(curr_mem == 4) { 
+	if(curr_mem == MAX_MEM_INSTS) { 
 		// No more mem insts slots left in CommitTrace struct
 		exit(1);
 		return; 
 	}
 
 	uint64_t hva = gva_to_hva(cpu, addr, DATA_LOAD);
+	if(hva == -1) {
+		return;
+	}
 	uint64_t data = *((uint64_t *) hva);
 	traceState.mem_addr[curr_mem] = addr;
 	traceState.mem_data[curr_mem] = data;

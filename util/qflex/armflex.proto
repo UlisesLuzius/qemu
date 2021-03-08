@@ -12,4 +12,7 @@ message ArmflexCommitTrace_p {
 	uint32 inst = 2;
 	repeated uint64 mem_addr = 3;
 	repeated uint64 mem_data = 4;
+	
+	bytes inst_block_data = 5;
+	repeated bytes mem_block_data = 6;
 }

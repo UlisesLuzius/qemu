@@ -128,7 +128,7 @@ int armflex_get_page(CPUState *cpu, uint64_t vaddr, int type) {
 	uint64_t ipt_bits = IPT_COMPRESS(vaddr, pid, type);
 	if(hvp == -1) {
 		// Page Fault/Permission Violation
-		// armflex_push_resp(cpu, ipt_bits, FAULT); TODO
+		// armflex_push_resp(cpu, ipt_bits, FAULT); // TODO
 	} else {
 		// 1. Add entry to IPT
 		uint64_t *chain = NULL; // Synonyms
@@ -138,17 +138,17 @@ int armflex_get_page(CPUState *cpu, uint64_t vaddr, int type) {
 		// 2. Pack response to FPGA
 		if(chain) {
 			// 2a. Synonyms
-			// armflex_push_resp(cpu, ipt_bits, SYNONYM); TODO
-			// armflex_push_synonyms(cpu, chain, cnt); TODO
+			// armflex_push_resp(cpu, ipt_bits, SYNONYM); // TODO
+			// armflex_push_synonyms(cpu, chain, cnt); // TODO
 		} else {
 			// 2b. send 4K PAGE to FPGA
-			// armflex_push_resp(cpu, ipt_bits, PAGE); TODO
-			// armflex_push_page(cpu, hvp); TODO
+			// armflex_push_resp(cpu, ipt_bits, PAGE); // TODO
+			// armflex_push_page(cpu, hvp); // TODO
 		}
 		free(chain);
 	}
 	// Send response to FPGA
-	// armflex_send_message(cpu); TODO
+	// armflex_send_message(cpu); // TODO
     return 0;
 }
 
@@ -156,6 +156,7 @@ void armflex_synchronize_page(CPUState *cpu, uint64_t vaddr, int type) {
 	uint64_t hvp = gva_to_hva(cpu, vaddr, type) & ~PAGE_MASK;
 	if(hvp == -1) {
 		// vaddr not mapped, no need to synchronize
+		// Might be IO
 		return;
 	}
 
@@ -186,10 +187,10 @@ void armflex_synchronize_page(CPUState *cpu, uint64_t vaddr, int type) {
 
 		if(synchronize) {
 			// Either a store or the FPGA had write permissions
-			// armflex_push_resp(cpu, EVICT); TODO
-			// armflex_evict_list(evicts); TODO
+			// armflex_push_resp(cpu, EVICT); // TODO
+			// armflex_evict_list(evicts); // TODO
 			// Wait for complete
-			// wait_fpga_ack(); TODO
+			// wait_fpga_ack(); // TODO
 			// Evict entry from the IPT
 			IPTHvp_evict(&entry, entryPtr);
 		}

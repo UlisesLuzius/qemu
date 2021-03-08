@@ -1,4 +1,5 @@
 #After make
+/.vscode/
 /qemu-storage-daemon
 /roms/vgabios/
 /storage-daemon/qapi/qapi-commands.c

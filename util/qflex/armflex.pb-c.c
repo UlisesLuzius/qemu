@@ -174,7 +174,7 @@ const ProtobufCMessageDescriptor armflex_arch_state_p__descriptor =
   (ProtobufCMessageInit) armflex_arch_state_p__init,
   NULL,NULL,NULL    /* reserved[123] */
 };
-static const ProtobufCFieldDescriptor armflex_commit_trace_p__field_descriptors[4] =
+static const ProtobufCFieldDescriptor armflex_commit_trace_p__field_descriptors[6] =
 {
   {
     "state",
@@ -224,17 +224,43 @@ static const ProtobufCFieldDescriptor armflex_commit_trace_p__field_descriptors[
     0 | PROTOBUF_C_FIELD_FLAG_PACKED,             /* flags */
     0,NULL,NULL    /* reserved1,reserved2, etc */
   },
+  {
+    "inst_block_data",
+    5,
+    PROTOBUF_C_LABEL_NONE,
+    PROTOBUF_C_TYPE_BYTES,
+    0,   /* quantifier_offset */
+    offsetof(ArmflexCommitTraceP, inst_block_data),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
+  {
+    "mem_block_data",
+    6,
+    PROTOBUF_C_LABEL_REPEATED,
+    PROTOBUF_C_TYPE_BYTES,
+    offsetof(ArmflexCommitTraceP, n_mem_block_data),
+    offsetof(ArmflexCommitTraceP, mem_block_data),
+    NULL,
+    NULL,
+    0,             /* flags */
+    0,NULL,NULL    /* reserved1,reserved2, etc */
+  },
 };
 static const unsigned armflex_commit_trace_p__field_indices_by_name[] = {
   1,   /* field[1] = inst */
+  4,   /* field[4] = inst_block_data */
   2,   /* field[2] = mem_addr */
+  5,   /* field[5] = mem_block_data */
   3,   /* field[3] = mem_data */
   0,   /* field[0] = state */
 };
 static const ProtobufCIntRange armflex_commit_trace_p__number_ranges[1 + 1] =
 {
   { 1, 0 },
-  { 0, 4 }
+  { 0, 6 }
 };
 const ProtobufCMessageDescriptor armflex_commit_trace_p__descriptor =
 {
@@ -244,7 +270,7 @@ const ProtobufCMessageDescriptor armflex_commit_trace_p__descriptor =
   "ArmflexCommitTraceP",
   "",
   sizeof(ArmflexCommitTraceP),
-  4,
+  6,
   armflex_commit_trace_p__field_descriptors,
   armflex_commit_trace_p__field_indices_by_name,
   1,  armflex_commit_trace_p__number_ranges,

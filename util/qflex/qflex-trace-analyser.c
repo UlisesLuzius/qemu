@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <string.h>
@@ -243,12 +244,27 @@ static inline void parse_line_fast(char* line, mem_access_t* mem) {
 	mem->isStore = isStore ? true : false;
 }
 
+typedef struct mem_trace_data {
+	uint32_t type;
+	uint64_t addr;
+	uint64_t hwaddr;
+} mem_trace_data;
+
 int main(int argc, char *argv[]) { 
-	const char *filename = argv[1];
-	FILE *file = fopen(filename, "r");
-	char *line;
-	size_t line_size = 0;
-	mem_access_t mem;
+	//const char *filename = argv[1];
+	int core_count = atoi(argv[1]);
+	if(core_count>64) exit(1);
+	
+	char filename[sizeof "mem_trace_00"];
+	FILE **files = calloc(core_count, sizeof(FILE*));
+	int available = 0;
+
+ 	for(int i = 0; i < core_count; i++) { 
+		sprintf(filename, "mem_trace_%02d", i);
+		files[i] = fopen(filename, "r");
+		available |= 1 << i;
+	}
+
 
 	size_t sets, associativity, block_size;
 	for(int cache_id = ID_ICache; cache_id < ID_UNDEF; cache_id++) {
@@ -262,13 +278,37 @@ int main(int argc, char *argv[]) {
 		//	   get_str[cache_id].str, sets, associativity, block_size);
 	}
 
-	while(getline(&line, &line_size, file) > 0) {
-		parse_line_fast(line, &mem);
-		model_memaccess(mem);
-	}
+    int rdSize = 0;
+	mem_trace_data trace;
+	mem_access_t mem;
+	while (available) {
+	    for(int cpu = 0; cpu < core_count; cpu++) {
+			if(available & 1 << cpu) {
+				rdSize = fread(&trace, sizeof(mem_trace_data), 1, files[cpu]);
+				if(rdSize < sizeof(mem_trace_data)) {
+					available &= ~(1 << cpu);
+					fclose(files[cpu]);
+				} else {
+					mem.isData = trace.type != 2;
+					mem.isStore = trace.type == 1;
+					mem.paddr = trace.hwaddr;
+					mem.vaddr = trace.addr;
+					mem.pid = cpu;
+			        model_memaccess(mem);
+				}
+			}
+	    }
+    }
+
+	//char *line;
+	//size_t line_size = 0;
+	//while(getline(&line, &line_size, file) > 0) {
+	//	parse_line_fast(line, &mem);
+	//	model_memaccess(mem);
+	//}
 	cache_model_log_direct();
 
-	free(line);
+	//free(line);
 	cache_end();
 
 	return 0;

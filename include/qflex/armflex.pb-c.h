@@ -47,10 +47,13 @@ struct  _ArmflexCommitTraceP
   uint64_t *mem_addr;
   size_t n_mem_data;
   uint64_t *mem_data;
+  ProtobufCBinaryData inst_block_data;
+  size_t n_mem_block_data;
+  ProtobufCBinaryData *mem_block_data;
 };
 #define ARMFLEX_COMMIT_TRACE_P__INIT \
  { PROTOBUF_C_MESSAGE_INIT (&armflex_commit_trace_p__descriptor) \
-    , NULL, 0, 0,NULL, 0,NULL }
+    , NULL, 0, 0,NULL, 0,NULL, {0,NULL}, 0,NULL }
 
 
 /* ArmflexArchStateP methods */

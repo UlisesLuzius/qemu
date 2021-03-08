@@ -5047,11 +5047,12 @@ ERST
 
 // QFLEX trace memory instructions command
 DEF("qflex-gen-mem-trace", HAS_ARG, QEMU_OPTION_qflex_gen_mem_trace,
-    "-qflex-gen-mem-trace\n",
+    "-qflex-gen-mem-trace [core_count=n]\n"
+    "                      core_count=n will set the number of cores",
     QEMU_ARCH_ARM)
 
 SRST
-``-qflex-gen-mem-trace``
+``-qflex-gen-mem-trace [core_count=n]``
     Enable a QFLEX to trace memory instructions
 Note : None
 ERST

@@ -2,7 +2,8 @@
 #define QFLEX_MODELS_H
 
 // ------ TRACE Memory Requests --------
-void qflex_mem_trace_init(void);
+void qflex_mem_trace_init(int core_count);
+void qflex_inst_trace(uint32_t inst, uint64_t pid);
 void qflex_mem_trace_start(size_t nb_insn);
 void qflex_mem_trace_stop(void);
 void qflex_mem_trace_end(void);

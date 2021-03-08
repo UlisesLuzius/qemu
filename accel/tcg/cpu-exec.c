@@ -41,6 +41,10 @@
 #ifdef CONFIG_QFLEX
 #include "qflex/qflex.h"
 #include "qflex/qflex-arch.h"
+#ifdef CONFIG_ARMFLEX
+#include "qflex/armflex.h"
+#include "qflex/armflex-verification.h"
+#endif
 #endif
 
 /* -icount align implementation. */
@@ -580,7 +584,7 @@ static inline bool cpu_handle_interrupt(CPUState *cpu,
            True when it is, and we should restart on a new TB,
            and via longjmp via cpu_loop_exit.  */
         else {
-            if (cc->cpu_exec_interrupt(cpu, interrupt_request)) {
+            if (cc->cpu_exec_interrupt(cpu, interrupt_request) ) { // TODO smarter way to not keep interrupting?
                 replay_interrupt();
                 cpu->exception_index = -1;
                 *last_tb = NULL;
@@ -711,6 +715,11 @@ int cpu_exec(CPUState *cpu)
         qemu_plugin_disable_mem_helpers(cpu);
 
         assert_no_pages_locked();
+#ifdef CONFIG_ARMFLEX
+        if(armflex_gen_verification()) {
+            armflex_gen_verification_inst_cancelled();
+        }
+#endif
     }
 
     /* if an exception is pending, we execute it here */
@@ -743,8 +752,8 @@ int cpu_exec(CPUState *cpu)
 			/* Depending on execution type, break the main loop */
             switch(qflex_is_type()) {
             case SINGLESTEP:
-                if(qflex_is_inst_done())
-                    goto break_loop;
+				qflex_update_inst_done(true);
+				goto break_loop;
                 break;
 
             case PROLOGUE:

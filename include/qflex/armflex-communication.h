@@ -5,7 +5,7 @@
 #include "qflex/armflex.pb-c.h"
 #include "qflex/armflex-verification.h"
 
-#define ARMFLEX_ROOT_DIR        "/dev/shm/qflex"
+#define ARMFLEX_ROOT_DIR "/tmp/qflex"
 
 typedef struct ArmflexFile {
     void* region; // Mapped Memory Region
@@ -36,9 +36,10 @@ void* armflex_open_cmd_shm(const char* name, size_t struct_size);
 /* ------ Protobuf ------ */
 void *armflex_pack_protobuf(ArmflexArchState *armflex, size_t *size);
 void armflex_unpack_protobuf(ArmflexArchState *armflex, void *stream, size_t size);
-void armflex_pack_protobuf_trace(ArmflexCommitTrace *trace, ArmflexCommitTraceP *traceP, uint8_t *stream);
-void armflex_trace_protobuf_close(ArmflexCommitTraceP *traceP, uint8_t **stream);
-void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP, uint8_t **stream, size_t *size);
+
+void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP);
+void armflex_trace_protobuf_close(ArmflexCommitTraceP *traceP);
+void armflex_trace_protobuf_pack(ArmflexCommitTrace *trace, ArmflexCommitTraceP *traceP, uint8_t *stream, int *size);
 
 /* ---- Communication ---- */
 /* This contains utilities to communicate between

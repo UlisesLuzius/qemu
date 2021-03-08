@@ -61,10 +61,13 @@ int qflex_prologue(CPUState *cpu) {
 int qflex_singlestep(CPUState *cpu) {
     int ret = 0;
     qflex_update_exec_type(SINGLESTEP);
+
     while(!qflex_is_inst_done()) {
         ret = qflex_cpu_step(cpu);
     }
+
     qflex_update_inst_done(false);
+
     return ret;
 }
 

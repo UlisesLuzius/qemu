@@ -17,99 +17,99 @@
 #include "qflex/armflex.pb-c.h"
 
 int armflex_file_stream_open(FILE **fp, const char *filename) {
-    char filepath[PATH_MAX];
+	char filepath[PATH_MAX];
 
-    qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
-                   "Writing file : "ARMFLEX_ROOT_DIR"/%s\n", filename);
-    if (mkdir(ARMFLEX_ROOT_DIR, 0777) && errno != EEXIST) {
-        qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
-                       "'mkdir "ARMFLEX_ROOT_DIR"' failed\n");
-        return 1;
-    }
+	qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+				   "Writing file : "ARMFLEX_ROOT_DIR"/%s\n", filename);
+	if (mkdir(ARMFLEX_ROOT_DIR, 0777) && errno != EEXIST) {
+		qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+					   "'mkdir "ARMFLEX_ROOT_DIR"' failed\n");
+		exit(1);
+	}
 
-    snprintf(filepath, PATH_MAX, ARMFLEX_ROOT_DIR"/%s", filename);
+	snprintf(filepath, PATH_MAX, ARMFLEX_ROOT_DIR"/%s", filename);
 	*fp = fopen(filepath, "w");
-    if(!fp) {
-        qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
-                       "ERROR: File stream open failed\n"
-                       "    filepath:%s\n", filepath);
-        return 1;
-    }
+	if(!fp) {
+		qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+					   "ERROR: File stream open failed\n"
+					   "    filepath:%s\n", filepath);
+		exit(1);
+	}
 
-    return 0;
+	return 0;
 }
 
 int armflex_file_stream_write(FILE *fp, void *stream, size_t size) {
 	if(fwrite(stream, 1, size, fp) != size) {
 		fclose(fp);
-        qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
-            "Error writing stream to file\n");
-        return 1;
+		qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+					   "Error writing stream to file\n");
+		return 1;
 	}
 	return 0;
 }
 
 int armflex_file_region_open(const char *filename, size_t size, ArmflexFile *file) {
-    char filepath[PATH_MAX];
-    int fd = -1;
-    void *region;
-    qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
-                   "Writing file : "ARMFLEX_ROOT_DIR"/%s\n", filename);
-    if (mkdir(ARMFLEX_ROOT_DIR, 0777) && errno != EEXIST) {
-        qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
-                       "'mkdir "ARMFLEX_ROOT_DIR"' failed\n");
-        return 1;
-    }
-    snprintf(filepath, PATH_MAX, ARMFLEX_ROOT_DIR"/%s", filename);
-    if((fd = open(filepath, O_RDWR | O_CREAT | O_TRUNC, 0666)) == -1) {
-        qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
-                       "Program Page dest file: open failed\n"
-                       "    filepath:%s\n", filepath);
-        return 1;
-    }
-    if (lseek(fd, size-1, SEEK_SET) == -1) {
-        close(fd);
-        qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
-            "Error calling lseek() to 'stretch' the file\n");
-        return 1;
-    }
-    if (write(fd, "", 1) != 1) {
-        close(fd);
-        qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
-            "Error writing last byte of the file\n");
-        return 1;
-    }
+	char filepath[PATH_MAX];
+	int fd = -1;
+	void *region;
+	qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+				   "Writing file : "ARMFLEX_ROOT_DIR"/%s\n", filename);
+	if (mkdir(ARMFLEX_ROOT_DIR, 0777) && errno != EEXIST) {
+		qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+					   "'mkdir "ARMFLEX_ROOT_DIR"' failed\n");
+		return 1;
+	}
+	snprintf(filepath, PATH_MAX, ARMFLEX_ROOT_DIR"/%s", filename);
+	if((fd = open(filepath, O_RDWR | O_CREAT | O_TRUNC, 0666)) == -1) {
+		qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+					   "Program Page dest file: open failed\n"
+					   "    filepath:%s\n", filepath);
+		return 1;
+	}
+	if (lseek(fd, size-1, SEEK_SET) == -1) {
+		close(fd);
+		qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+					   "Error calling lseek() to 'stretch' the file\n");
+		return 1;
+	}
+	if (write(fd, "", 1) != 1) {
+		close(fd);
+		qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+					   "Error writing last byte of the file\n");
+		return 1;
+	}
 
-    region = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
-    if(region == MAP_FAILED) {
-        close(fd);
-        qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
-            "Error dest file: mmap failed");
-        return 1;
-    }
+	region = mmap(NULL, size, PROT_READ|PROT_WRITE, MAP_SHARED, fd, 0);
+	if(region == MAP_FAILED) {
+		close(fd);
+		qflex_log_mask(QFLEX_LOG_FILE_ACCESS,
+					   "Error dest file: mmap failed");
+		return 1;
+	}
 
-    file->fd=fd;
-    file->region = region;
-    file->size = size;
-    return 0;
+	file->fd=fd;
+	file->region = region;
+	file->size = size;
+	return 0;
 }
 
 void armflex_file_region_write(ArmflexFile *file, void* buffer) {
-    memcpy(file->region, buffer, file->size);
-    msync(file->region, file->size, MS_SYNC);
+	memcpy(file->region, buffer, file->size);
+	msync(file->region, file->size, MS_SYNC);
 }
 
 void armflex_file_region_close(ArmflexFile *file) {
-    munmap(file->region, file->size);
-    close(file->fd);
+	munmap(file->region, file->size);
+	close(file->fd);
 }
 
 void* armflex_open_cmd_shm(const char* name, size_t struct_size){
 	int shm_fd; 
 	shm_fd = shm_open(name, O_CREAT | O_RDWR, 0666); 
-    if (ftruncate(shm_fd, struct_size) < 0) {
-        qflex_log_mask(QFLEX_LOG_FILE_ACCESS,"ftruncate for '%s' failed\n",name);
-    }
+	if (ftruncate(shm_fd, struct_size) < 0) {
+		qflex_log_mask(QFLEX_LOG_FILE_ACCESS,"ftruncate for '%s' failed\n",name);
+	}
 	void* cmd =  mmap(0, struct_size, PROT_READ|PROT_WRITE, MAP_SHARED, shm_fd, 0); 
 	return cmd;
 }
@@ -169,39 +169,43 @@ void armflex_unpack_protobuf(ArmflexArchState *armflex, void *stream, size_t siz
 }
 
 
-void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP,
-										uint8_t **stream, size_t *size) {
+void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP) {
 	// Init fields
 	traceP->n_mem_addr = MAX_MEM_INSTS;
-	traceP->mem_addr = malloc (sizeof (uint64_t) * MAX_MEM_INSTS);
 	traceP->n_mem_data = MAX_MEM_INSTS;
-	traceP->mem_data = malloc (sizeof (uint64_t) * MAX_MEM_INSTS);
+	traceP->mem_addr = malloc (sizeof (uint64_t) * traceP->n_mem_addr);
+	traceP->mem_data = malloc (sizeof (uint64_t) * traceP->n_mem_data);
 	assert(traceP->mem_addr);
 	assert(traceP->mem_data);
+
+    traceP->inst_block_data.len = BLOCK_SIZE;
+	traceP->inst_block_data.data = malloc(BLOCK_SIZE);
+
+	traceP->n_mem_block_data = MAX_MEM_INSTS;
+	traceP->mem_block_data = malloc(sizeof(ProtobufCBinaryData)* traceP->n_mem_block_data);
+	for(int i = 0; i < MAX_MEM_INSTS; i++) {
+	  traceP->mem_block_data[i].len = BLOCK_SIZE;
+	  traceP->mem_block_data[i].data = malloc(BLOCK_SIZE);
+	}
 
 	// Init State
 	ArmflexArchStateP *state = traceP->state;
 	state->n_xregs = 32;
-	state->xregs = malloc (sizeof (uint64_t) * 32);
+	state->xregs = malloc(sizeof(uint64_t) * state->n_xregs);
 	assert(state->xregs);
-
-	*size = armflex_commit_trace_p__get_packed_size (traceP); // This is calculated packing length
-	*stream = malloc(*size + 1);                               // Allocate required serialized buffer length 
-	assert(stream);
 }
 
-void armflex_trace_protobuf_close(ArmflexCommitTraceP *traceP,
-										 uint8_t **stream) {
+void armflex_trace_protobuf_close(ArmflexCommitTraceP *traceP) {
 	// Free allocated fields
 	free(traceP->mem_addr);
 	free(traceP->mem_data);
 	free(traceP->state->xregs);
-	free(*stream);
 }
 
-void armflex_pack_protobuf_trace(ArmflexCommitTrace *trace,
-										ArmflexCommitTraceP *traceP, 
-										uint8_t *stream) {
+void armflex_trace_protobuf_pack(ArmflexCommitTrace *trace,
+								 ArmflexCommitTraceP *traceP, 
+								 uint8_t *stream,
+								 int *size) {
 	// Pack Commit Trace
 	traceP->inst = trace->inst;
 	memcpy(traceP->mem_addr, trace->mem_addr, sizeof(uint64_t) * traceP->n_mem_addr);
@@ -215,7 +219,14 @@ void armflex_pack_protobuf_trace(ArmflexCommitTrace *trace,
 	stateP->sp = state->sp;
 	stateP->nzcv = state->nzcv;
 
+	memcpy(traceP->inst_block_data.data, &(trace->inst_block_data), BLOCK_SIZE);
+	for (int i = 0; i < traceP->n_mem_block_data; i++) {
+	  memcpy(traceP->mem_block_data[i].data, &(trace->mem_block_data[i]), BLOCK_SIZE);
+	}
+
 	// protobuf struct -> protobuf stream
+	*size = armflex_commit_trace_p__get_packed_size (traceP); // This is calculated packing length
+	assert(*size <= 1024);
 	armflex_commit_trace_p__pack (traceP, stream); // Pack the data
 }
 

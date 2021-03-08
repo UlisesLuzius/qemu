@@ -1451,7 +1451,7 @@ int qflex_cpu_step(CPUState *cpu)
 
     replay_mutex_unlock();
 
-	if (cpu && !cpu->queued_work_first && !cpu->exit_request) {
+	while (cpu && !cpu->queued_work_first && !cpu->exit_request) {
 
         atomic_mb_set(&tcg_current_rr_cpu, cpu);
         current_cpu = cpu;
@@ -1473,12 +1473,12 @@ int qflex_cpu_step(CPUState *cpu)
 
             if (r == EXCP_DEBUG) {
                 cpu_handle_guest_debug(cpu);
-                // break; // singlestep one CPU drops while loop
+                break; // singlestep one CPU drops while loop
             } else if (r == EXCP_ATOMIC) {
                 qemu_mutex_unlock_iothread();
                 cpu_exec_step_atomic(cpu);
                 qemu_mutex_lock_iothread();
-                // break; // singlestep one CPU drops while loop
+                break; // singlestep one CPU drops while loop
             }
         } else if (cpu->stop) {
             /* tcg_cpu_exec() output is defined in cpu-all.h
@@ -1490,9 +1490,10 @@ int qflex_cpu_step(CPUState *cpu)
                 cpu = CPU_NEXT(cpu);
 				r = 0x3F00D; // Random assigned number for now
             }
-            // break; // singlestep one CPU drops while loop
+            break; // singlestep one CPU drops while loop
         }
 
+		cpu = NULL; // Normally CPU_NEXT(cpu), but here we are singlestepping
     } /* while (cpu && !cpu->exit_request).. */
 
     /* Does not need atomic_mb_set because a spurious wakeup is okay.  */
@@ -1563,7 +1564,15 @@ static void *qemu_tcg_rr_cpu_thread_fn(void *arg)
     /* process any pending work */
     cpu->exit_request = 1;
 
+
+	// struct timespec start, end;
+	// clock_gettime(CLOCK_MONOTONIC_RAW, &start);
     while (1) {
+		// clock_gettime(CLOCK_MONOTONIC_RAW, &end);
+		// uint64_t delta_us = (end.tv_sec - start.tv_sec) * 1000000 + (end.tv_nsec - start.tv_nsec) / 1000;
+		// qemu_log("S:%ld\n", delta_us);
+		// clock_gettime(CLOCK_MONOTONIC_RAW, &start);
+
         qemu_mutex_unlock_iothread();
         replay_mutex_lock();
         qemu_mutex_lock_iothread();
@@ -1581,7 +1590,10 @@ static void *qemu_tcg_rr_cpu_thread_fn(void *arg)
             cpu = first_cpu;
         }
 
+
         while (cpu && !cpu->queued_work_first && !cpu->exit_request) {
+
+
             atomic_mb_set(&tcg_current_rr_cpu, cpu);
             current_cpu = cpu;
 

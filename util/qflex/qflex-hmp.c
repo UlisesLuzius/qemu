@@ -6,7 +6,12 @@
 #include "qapi/qmp/qnum.h"
 
 #include "qflex/qflex-hmp.h"
+#include "qflex/qflex.h"
 #include "qflex/qflex-models.h"
+
+void hmp_qflex_singlestep_start(Monitor *mon, const QDict *qdict) {
+	qflexState.fast_forward = true;
+}
 
 // QFLEX Cache Models functions
 void hmp_qflex_mem_trace_start(Monitor *mon, const QDict *qdict) {

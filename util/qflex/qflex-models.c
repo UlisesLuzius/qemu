@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
 #include <errno.h>
@@ -16,6 +17,7 @@
 #include "qflex/qflex.h"
 #include "qflex/qflex-log.h"
 #include "qflex/qflex-models.h"
+#include "qflex/armflex-communication.h"
 
 // ------ CHECK --------
 
@@ -29,19 +31,56 @@ static size_t total_st = 0;
 static size_t total_trace_insts = 0;
 static bool gen_helper= false;
 static bool gen_trace = false;
+static bool gen_inst = false;
 
-void qflex_mem_trace_init(void) {
+static FILE** traceFiles;
+static FILE** instFiles;
+
+void qflex_mem_trace_init(int core_count) {
 	total_insts = 0;
     total_mem = 0;
 	gen_helper = false;
 	gen_trace = false;
+	traceFiles = calloc(core_count, sizeof(FILE*));
+
+	char filename[sizeof "mem_trace_00"];
+	for(int i = 0; i < core_count; i++) {
+		if(i > 64) exit(1);
+        sprintf(filename, "mem_trace_%02d", i);
+		qemu_log("Filename %s\n", filename);
+	    armflex_file_stream_open(&traceFiles[i], filename);
+	}
+
+// Instruction trace
+	instFiles = calloc(core_count, sizeof(FILE*));
+	gen_inst = false;
+
+	char filenameInst[sizeof "inst_trace_00"];
+	for(int i = 0; i < core_count; i++) {
+ 		if(i > 64) exit(1);
+        sprintf(filenameInst, "inst_trace_%02d", i);
+		qemu_log("Filename %s\n", filename);
+	    armflex_file_stream_open(&instFiles[i], filenameInst);
+	}
 }
 
+void qflex_inst_trace(uint32_t inst, uint64_t pid) {
+	armflex_file_stream_write(instFiles[pid], &inst, sizeof(inst));
+}
+
+typedef struct mem_trace_data {
+	uint32_t type;
+	uint64_t addr;
+	uint64_t hwaddr;
+} mem_trace_data;
+
 void qflex_mem_trace_memaccess(uint64_t addr, uint64_t hwaddr, uint64_t pid, uint64_t type) {
-	FILE *logfile = qemu_log_lock();
-	qemu_log("CPU%"PRIu64":%"PRIu64":0x%016"PRIx64":0x%016"PRIx64"\n", 
-			 pid, type, addr, hwaddr);
-	qemu_log_unlock(logfile);
+	//FILE *logfile = qemu_log_lock();
+	//qemu_log("CPU%"PRIu64":%"PRIu64":0x%016"PRIx64":0x%016"PRIx64"\n", 
+	//		 pid, type, addr, hwaddr);
+	//qemu_log_unlock(logfile);
+	mem_trace_data trace = {.addr = addr, .hwaddr = hwaddr, .type = type};
+	armflex_file_stream_write(traceFiles[pid], &trace, sizeof(trace));
 
 	switch(type) {
 		case MMU_DATA_LOAD: total_ld++; total_mem++; break;
@@ -59,13 +98,11 @@ void qflex_mem_trace_memaccess(uint64_t addr, uint64_t hwaddr, uint64_t pid, uin
 
 void qflex_mem_trace_gen_helper_start(void) { 
 	gen_helper = true; 
-	gen_trace = false;
 	qflex_tb_flush();
 }
 
 void qflex_mem_trace_gen_helper_stop(void) {
 	gen_helper = false;
-	gen_trace = false;
 	qflex_tb_flush();
 }
 
@@ -73,6 +110,7 @@ void qflex_mem_trace_start(size_t nb_insn) {
 	total_trace_insts = nb_insn;
 	gen_helper = true; 
 	gen_trace = true;
+	gen_inst = true;
 	qflex_tb_flush();
 }
 
@@ -83,8 +121,14 @@ void qflex_mem_trace_stop(void) {
 }
 
 void qflex_mem_trace_end(void) { 
-	qflex_mem_trace_init();
+	total_insts = 0;
+    total_mem = 0;
+	gen_helper = false;
+	gen_trace = false;
     qflex_tb_flush();
+	//for(int i = 0; i < core_count; i++) {
+	//	fclose(traceFiles[i]);
+	//}
 }
 
 bool qflex_mem_trace_gen_helper(void) { return gen_helper; }

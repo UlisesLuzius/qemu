@@ -138,7 +138,6 @@ static inline size_t cache_get_lru(cache_model_t* cache, size_t slot) {
             lru = slot+i;
             time = entry.time;
         }
-
     }
     return lru;
 }
@@ -214,13 +213,14 @@ static inline void cache_log_stats(char *buffer, size_t max_size) {
 	double PageFaultPercent = (double) TLB.misses / (double) (total_insts + total_mem);
 
 	size_t tot_chars = snprintf(buffer, max_size, 
-						 "%zu, %zu, %.5f, %zu, %zu, %.5f\n"
-						 "%zu, %.5f, %zu, %.5f, %zu, %.5f, %.5f\n"
-						 , 
-						 total_insts, iCache.misses, iCachePercent, 
-						 total_mem, dCache.misses, dCachePercent,
-						 iTLB.misses, iTLBPercent, dTLB.misses, dTLBPercent, 
-						 TLB.misses, TLBPercent, PageFaultPercent);
+						"inst : %+8zu, %+4zu, %.5f \n"
+						"mem  : %+8zu, %+4zu, %.5f \n"
+						"TLB  : %+4zu, %.5f, %+4zu, %.5f\n"
+						"PT   : %+4zu, %.5f, %.5f\n", 
+						total_insts, iCache.misses, iCachePercent, 
+						total_mem, dCache.misses, dCachePercent,
+						iTLB.misses, iTLBPercent, dTLB.misses, dTLBPercent, 
+						TLB.misses, TLBPercent, PageFaultPercent);
 
 
 	if(tot_chars > max_size) {
@@ -250,18 +250,22 @@ typedef struct mem_trace_data {
 	uint64_t hwaddr;
 } mem_trace_data;
 
+#define PATH_MAX 4096
+#define ROOT_DIR "/tmp/qflex"
 int main(int argc, char *argv[]) { 
 	//const char *filename = argv[1];
 	int core_count = atoi(argv[1]);
 	if(core_count>64) exit(1);
 	
+	char filepath[PATH_MAX];
 	char filename[sizeof "mem_trace_00"];
 	FILE **files = calloc(core_count, sizeof(FILE*));
 	int available = 0;
 
  	for(int i = 0; i < core_count; i++) { 
 		sprintf(filename, "mem_trace_%02d", i);
-		files[i] = fopen(filename, "r");
+      	snprintf(filepath, PATH_MAX, ROOT_DIR"/%s", filename);
+		files[i] = fopen(filepath, "r");
 		available |= 1 << i;
 	}
 
@@ -272,10 +276,10 @@ int main(int argc, char *argv[]) {
 		associativity = atoi(argv[3*cache_id + 3]);
 		block_size = atoi(argv[3*cache_id + 4]);
 		cache_init(cache_id, sets, block_size, associativity);
-		printf("%lu, %lu, %lu,\n", 
-			   sets, associativity, block_size);
-		//printf("%s: %lu %lu %lu\n", 
-		//	   get_str[cache_id].str, sets, associativity, block_size);
+		//printf("%lu, %lu, %lu,\n", 
+		//	   sets, associativity, block_size);
+		printf("%s: %lu %lu %lu\n", 
+			   get_str[cache_id].str, sets, associativity, block_size);
 	}
 
     int rdSize = 0;
@@ -285,7 +289,7 @@ int main(int argc, char *argv[]) {
 	    for(int cpu = 0; cpu < core_count; cpu++) {
 			if(available & 1 << cpu) {
 				rdSize = fread(&trace, sizeof(mem_trace_data), 1, files[cpu]);
-				if(rdSize < sizeof(mem_trace_data)) {
+				if(rdSize != 1) {
 					available &= ~(1 << cpu);
 					fclose(files[cpu]);
 				} else {

@@ -8,6 +8,13 @@
 
 #define PAGE_SIZE 4096
 
+// See cpu.h to match MMUAccessType
+typedef enum MemoryAccessType {
+    DATA_LOAD  = 0,
+    DATA_STORE = 1,
+    INST_FETCH = 2
+} MemoryAccessType;
+
 typedef struct ArmflexConfig {
     bool enabled;
     bool running;
@@ -96,33 +103,5 @@ bool armflex_get_paddr(CPUState *cpu, uint64_t addr, uint64_t access_type,  uint
  * @return                  If 0: Success, else FAULT was generated
  */
 bool armflex_get_ppage(CPUState *cpu, uint64_t addr, uint64_t access_type,  uint64_t *host_phys_page, uint64_t *page_size);
-
-
-/* Messages betweem FPGA/Chisel and QEMU */
-
-#define cmd_base(CMD) {CMD, 0}
-typedef enum ArmflexCmds_t {
-    // Commands SIM->QEMU
-    DATA_LOAD   = 0, // See
-    DATA_STORE  = 1, //     cpu.h
-    INST_FETCH  = 2, //        for MMUAccessTypes
-    INST_UNDEF  = 3,
-    INST_EXCP   = 4,
-
-    // Commands QEMU->SIM
-    SIM_START = 5, // Load state from QEMU
-    SIM_STOP = 6,
-
-    // Commands QEMU<->SIM
-    LOCK_WAIT = 7,
-    CHECK_N_STEP = 8,
-    FA_QFLEXCMDS_NR
-} ArmflexCmds_t;
-
-/* short version of ArmflexCmd_t. easy to use in binary files*/
-typedef struct ArmflexMsg_t {
-    ArmflexCmds_t type;
-    uint64_t addr;
-} ArmflexMsg_t;
 
 #endif /* ARMFLEX_H */

@@ -2,7 +2,7 @@
 #include <stdlib.h>
 
 #include "qflex/qflex.h"
-#include "qflex/qflex-models.h"
+#include "qflex/qflex-traces.h"
 #include "qflex/qflex-arch.h"
 #include "qflex/armflex.h"
 #include "qflex/armflex.pb-c.h"

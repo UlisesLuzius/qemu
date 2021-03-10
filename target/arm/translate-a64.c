@@ -41,7 +41,7 @@
 
 #ifdef CONFIG_QFLEX
 #define GEN_HELPER(func)  glue(gen_helper_, func)
-#include "qflex/qflex-models.h"
+#include "qflex/qflex-traces.h"
 #endif
 
 #ifdef CONFIG_QFLEX

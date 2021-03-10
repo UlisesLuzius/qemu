@@ -7,7 +7,7 @@
 
 #include "qflex/qflex-hmp.h"
 #include "qflex/qflex.h"
-#include "qflex/qflex-models.h"
+#include "qflex/qflex-traces.h"
 
 void hmp_qflex_singlestep_start(Monitor *mon, const QDict *qdict) {
 	qflexState.fast_forward = true;

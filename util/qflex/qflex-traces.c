@@ -16,7 +16,7 @@
 
 #include "qflex/qflex.h"
 #include "qflex/qflex-log.h"
-#include "qflex/qflex-models.h"
+#include "qflex/qflex-traces.h"
 #include "qflex/armflex-communication.h"
 
 // ------ CHECK --------

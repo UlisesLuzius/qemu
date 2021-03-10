@@ -58,6 +58,7 @@ typedef struct mem_access_t {
 
 static size_t total_insts = 0;
 static size_t total_mem = 0;
+static size_t core_count = 0;
 static cache_model_t iCache;
 static cache_model_t dCache;
 static cache_model_t iTLB;
@@ -121,11 +122,13 @@ static inline size_t get_cache_tag(cache_model_t* cache, size_t addr) {
     return addr >> cache->block_size;
 }
 
-static inline size_t get_cache_slot(cache_model_t* cache, size_t addr) {
+static inline size_t get_cache_slot(cache_model_t* cache, size_t pid, size_t addr) {
+	size_t pidMask = core_count-1;
     size_t bits = addr >> cache->block_size;
+	bits &= ~pidMask;
+	bits |= pid;
     size_t slot = bits % cache->sets;
     return slot * cache->associativity;
-
 }
 
 static inline size_t cache_get_lru(cache_model_t* cache, size_t slot) {
@@ -146,7 +149,7 @@ static inline bool cache_access(cache_model_t* cache, size_t addr, char pid) {
 
     bool is_hit = false;
     size_t tag = get_cache_tag(cache, addr);
-    size_t slot = get_cache_slot(cache, addr);
+    size_t slot = get_cache_slot(cache, pid, addr);
     size_t idx = 0;
 	cache_entry_t* entry = &cache->entries[0];
 
@@ -254,7 +257,7 @@ typedef struct mem_trace_data {
 #define ROOT_DIR "/tmp/qflex"
 int main(int argc, char *argv[]) { 
 	//const char *filename = argv[1];
-	int core_count = atoi(argv[1]);
+	core_count = atoi(argv[1]);
 	if(core_count>64) exit(1);
 	
 	char filepath[PATH_MAX];
@@ -285,13 +288,15 @@ int main(int argc, char *argv[]) {
     int rdSize = 0;
 	mem_trace_data trace;
 	mem_access_t mem;
-	while (available) {
+	bool done = false;
+	while (available && !done) {
 	    for(int cpu = 0; cpu < core_count; cpu++) {
 			if(available & 1 << cpu) {
 				rdSize = fread(&trace, sizeof(mem_trace_data), 1, files[cpu]);
 				if(rdSize != 1) {
 					available &= ~(1 << cpu);
 					fclose(files[cpu]);
+					done = true;
 				} else {
 					mem.isData = trace.type != 2;
 					mem.isStore = trace.type == 1;

@@ -13,7 +13,7 @@
 #include "qflex/qflex-config.h"
 #include "qflex/qflex.h"
 #include "qflex/qflex-log.h"
-#include "qflex/qflex-models.h"
+#include "qflex/qflex-traces.h"
 
 QemuOptsList qemu_qflex_opts = {
     .name = "qflex",

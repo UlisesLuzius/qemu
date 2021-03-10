@@ -8,7 +8,7 @@
 #include "qflex/qflex-profiling.h"
 #include "qflex-helper.h"
 #include "qflex/qflex-helper-a64.h"
-#include "qflex/qflex-models.h"
+#include "qflex/qflex-traces.h"
 
 #ifdef CONFIG_ARMFLEX
 #include "qflex/armflex.h"
@@ -36,6 +36,7 @@ void HELPER(qflex_mem_trace)(CPUARMState* env, uint64_t addr, uint64_t type) {
 	if(qflex_mem_trace_gen_trace()) {
 		uint64_t paddr = gva_to_hva(cs, addr, type);
 		if(paddr != -1)  {
+//		if(paddr != -1 && arm_current_el(env) != 0)  { // For user-mode tracing
 			qflex_mem_trace_memaccess(addr, paddr, cs->cpu_index, type);
             if(type == MMU_INST_FETCH) {
                 inst = *(uint32_t *) paddr;

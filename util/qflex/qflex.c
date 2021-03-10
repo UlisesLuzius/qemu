@@ -19,7 +19,7 @@
 
 #include "qflex/qflex.h"
 #include "qflex/qflex-profiling.h"
-#include "qflex/qflex-models.h"
+#include "qflex/qflex-traces.h"
 
 #ifdef CONFIG_FA_QFLEX
 #include "qflex/fa-qflex.h"

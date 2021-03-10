@@ -12,9 +12,9 @@
 
 #include "qflex/qflex-log.h"
 
-#include "qflex/armflex.h"
-#include "qflex/armflex-communication.h"
-#include "qflex/armflex.pb-c.h"
+#include "qflex/armflex/armflex.h"
+#include "qflex/armflex/armflex-communication.h"
+#include "qflex/armflex/armflex.pb-c.h"
 
 int armflex_file_stream_open(FILE **fp, const char *filename) {
 	char filepath[PATH_MAX];

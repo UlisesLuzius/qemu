@@ -17,7 +17,9 @@
 #include "qflex/qflex.h"
 #include "qflex/qflex-log.h"
 #include "qflex/qflex-traces.h"
-#include "qflex/armflex-communication.h"
+#ifdef CONFIG_ARMFLEX
+#include "qflex/armflex/armflex-communication.h"
+#endif
 
 // ------ CHECK --------
 
@@ -33,16 +35,19 @@ static bool gen_helper= false;
 static bool gen_trace = false;
 static bool gen_inst = false;
 
+#ifdef CONFIG_ARMFLEX
 static FILE** traceFiles;
 static FILE** instFiles;
+#endif
 
 void qflex_mem_trace_init(int core_count) {
 	total_insts = 0;
     total_mem = 0;
 	gen_helper = false;
 	gen_trace = false;
-	traceFiles = calloc(core_count, sizeof(FILE*));
 
+#ifdef CONFIG_ARMFLEX
+	traceFiles = calloc(core_count, sizeof(FILE*));
 	char filename[sizeof "mem_trace_00"];
 	for(int i = 0; i < core_count; i++) {
 		if(i > 64) exit(1);
@@ -62,10 +67,13 @@ void qflex_mem_trace_init(int core_count) {
 		qemu_log("Filename %s\n", filename);
 	    armflex_file_stream_open(&instFiles[i], filenameInst);
 	}
+#endif
 }
 
 void qflex_inst_trace(uint32_t inst, uint64_t pid) {
+#ifdef CONFIG_ARMFLEX
 	armflex_file_stream_write(instFiles[pid], &inst, sizeof(inst));
+#endif
 }
 
 typedef struct mem_trace_data {
@@ -80,7 +88,9 @@ void qflex_mem_trace_memaccess(uint64_t addr, uint64_t hwaddr, uint64_t pid, uin
 	//		 pid, type, addr, hwaddr);
 	//qemu_log_unlock(logfile);
 	mem_trace_data trace = {.addr = addr, .hwaddr = hwaddr, .type = type};
+#ifdef CONFIG_ARMFLEX
 	armflex_file_stream_write(traceFiles[pid], &trace, sizeof(trace));
+#endif
 
 	switch(type) {
 		case MMU_DATA_LOAD: total_ld++; total_mem++; break;

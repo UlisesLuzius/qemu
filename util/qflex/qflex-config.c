@@ -51,7 +51,7 @@ QemuOptsList qemu_qflex_gen_mem_trace_opts = {
 };
 
 #ifdef CONFIG_ARMFLEX
-#include "qflex/armflex.h"
+#include "qflex/armflex/armflex.h"
 QemuOptsList qemu_armflex_opts = {
     .name = "armflex",
     .implied_opt_name = "enable",

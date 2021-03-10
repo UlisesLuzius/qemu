@@ -11,9 +11,9 @@
 #include "qflex/qflex-traces.h"
 
 #ifdef CONFIG_ARMFLEX
-#include "qflex/armflex.h"
-#include "qflex/armflex-verification.h"
-#include "qflex/armflex-page-demander.h"
+#include "qflex/armflex/armflex.h"
+#include "qflex/armflex/armflex-verification.h"
+#include "qflex/armflex/armflex-page-demander.h"
 #endif /* CONFIG_ARMFLEX */
 
 /* TCG helper functions. (See exec/helper-proto.h  and target/arch/helper-a64.h)

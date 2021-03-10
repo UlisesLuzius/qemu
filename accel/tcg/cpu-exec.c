@@ -42,8 +42,8 @@
 #include "qflex/qflex.h"
 #include "qflex/qflex-arch.h"
 #ifdef CONFIG_ARMFLEX
-#include "qflex/armflex.h"
-#include "qflex/armflex-verification.h"
+#include "qflex/armflex/armflex.h"
+#include "qflex/armflex/armflex-verification.h"
 #endif
 #endif
 

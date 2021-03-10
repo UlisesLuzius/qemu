@@ -1,9 +1,9 @@
 #ifndef ARMLEX_COMMUNICATION_H
 #define ARMLEX_COMMUNICATION_H
 
-#include "qflex/armflex.h"
-#include "qflex/armflex.pb-c.h"
-#include "qflex/armflex-verification.h"
+#include "qflex/armflex/armflex.h"
+#include "qflex/armflex/armflex.pb-c.h"
+#include "qflex/armflex/armflex-verification.h"
 
 #define ARMFLEX_ROOT_DIR "/tmp/qflex"
 

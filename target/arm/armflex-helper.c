@@ -2,7 +2,7 @@
 #include "cpu.h"
 
 #include "qflex/qflex-arch.h"
-#include "qflex/armflex.h"
+#include "qflex/armflex/armflex.h"
 
 void armflex_pack_archstate(CPUState *cpu, ArmflexArchState *armflex) {
     CPUARMState *env = cpu->env_ptr;

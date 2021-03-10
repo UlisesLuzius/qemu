@@ -4,10 +4,10 @@
 #include "qflex/qflex.h"
 #include "qflex/qflex-traces.h"
 #include "qflex/qflex-arch.h"
-#include "qflex/armflex.h"
-#include "qflex/armflex.pb-c.h"
-#include "qflex/armflex-communication.h"
-#include "qflex/armflex-verification.h"
+#include "qflex/armflex/armflex.h"
+#include "qflex/armflex/armflex.pb-c.h"
+#include "qflex/armflex/armflex-communication.h"
+#include "qflex/armflex/armflex-verification.h"
 
 static bool gen_trace = false;
 bool armflex_gen_verification(void) { return gen_trace; }

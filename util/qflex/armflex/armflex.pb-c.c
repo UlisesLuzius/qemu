@@ -6,7 +6,7 @@
 #define PROTOBUF_C__NO_DEPRECATED
 #endif
 
-#include "qflex/armflex.pb-c.h"
+#include "qflex/armflex/armflex.pb-c.h"
 void   armflex_arch_state_p__init
                      (ArmflexArchStateP         *message)
 {

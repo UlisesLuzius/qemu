@@ -34,8 +34,8 @@ void hmp_qflex_mem_trace_log_stats(Monitor *mon, const QDict *qdict) {
 }
 
 #ifdef CONFIG_ARMFLEX
-#include "qflex/armflex.h"
-#include "qflex/armflex-verification.h"
+#include "qflex/armflex/armflex.h"
+#include "qflex/armflex/armflex-verification.h"
 void hmp_armflex_start(Monitor *mon, const QDict *qdict) {
 	armflex_init(true, true);
 }

@@ -3,8 +3,8 @@
 #include "qemu/thread.h"
 
 #include "qflex/qflex.h"
-#include "qflex/armflex.h"
-#include "qflex/armflex-page-demander.h"
+#include "qflex/armflex/armflex.h"
+#include "qflex/armflex/armflex-page-demander.h"
 
 static InvertedPageTable ipt;
 

@@ -4,7 +4,7 @@
 #include "qflex/qflex-arch.h"
 #include "qflex/armflex/armflex.h"
 
-void armflex_pack_archstate(CPUState *cpu, ArmflexArchState *armflex) {
+void armflex_pack_archstate(ArmflexArchState *armflex, CPUState *cpu ) {
     CPUARMState *env = cpu->env_ptr;
 
 	memcpy(&armflex->xregs,     &env->xregs, 32*sizeof(uint64_t));
@@ -19,7 +19,7 @@ void armflex_pack_archstate(CPUState *cpu, ArmflexArchState *armflex) {
 	armflex->nzcv = nzcv;
 }
 
-void armflex_unpack_archstate(ArmflexArchState *armflex, CPUState *cpu) {
+void armflex_unpack_archstate(CPUState *cpu, ArmflexArchState *armflex) {
     CPUARMState *env = cpu->env_ptr;
 
     memcpy(&env->xregs, &armflex->xregs, 32*sizeof(uint64_t));

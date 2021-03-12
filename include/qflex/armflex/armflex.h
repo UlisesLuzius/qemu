@@ -45,6 +45,7 @@ static inline bool armflex_is_running(void) { return armflexConfig.enabled && ar
 #define ARCH_PSTATE_ZF_MASK     (2)    // 64bit 2
 #define ARCH_PSTATE_CF_MASK     (1)    // 64bit 1
 #define ARCH_PSTATE_VF_MASK     (0)    // 64bit 0
+#define ARMFLEX_TOT_REGS        (35)
 
 typedef struct ArmflexArchState {
 	uint64_t xregs[32];
@@ -71,8 +72,8 @@ void armflex_unserialize_archstate(void *buffer, ArmflexArchState *armflex);
  * @param armflex The ARMFLEX CPU state
  * @return        Returns 0 on success
  */
-void armflex_pack_archstate(CPUState *cpu, ArmflexArchState *armflex);
-void armflex_unpack_archstate(ArmflexArchState *armflex, CPUState *cpu);
+void armflex_pack_archstate(ArmflexArchState *armflex, CPUState *cpu);
+void armflex_unpack_archstate(CPUState *cpu, ArmflexArchState *armflex);
 
 /**
  * @brief armflex_get_load_addr
@@ -103,5 +104,7 @@ bool armflex_get_paddr(CPUState *cpu, uint64_t addr, uint64_t access_type,  uint
  * @return                  If 0: Success, else FAULT was generated
  */
 bool armflex_get_ppage(CPUState *cpu, uint64_t addr, uint64_t access_type,  uint64_t *host_phys_page, uint64_t *page_size);
+
+int armflex_execution_flow(void);
 
 #endif /* ARMFLEX_H */

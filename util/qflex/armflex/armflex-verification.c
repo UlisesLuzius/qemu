@@ -76,7 +76,7 @@ void armflex_gen_verification_add_state(CPUState* cpu, uint64_t addr) {
 		}
 	}
 
-	armflex_pack_archstate(cpu, &traceState.state);
+	armflex_pack_archstate(&traceState.state, cpu);
 	uint64_t hva = gva_to_hva(cpu, addr, INST_FETCH);
 	if(hva == -1) {
 		return;

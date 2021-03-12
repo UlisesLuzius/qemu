@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FPGA_H
+#define FPGA_H
 
 #include <stdint.h>
 
@@ -16,3 +17,5 @@ int writeAXIL(const FPGAContext *c, uint32_t addr, uint32_t data);
 int readAXI(const FPGAContext *c, uint64_t addr, void *data);
 int writeAXI(const FPGAContext *c, uint64_t addr, void *data);
 int releaseFPGAContext(FPGAContext *c);
+
+#endif

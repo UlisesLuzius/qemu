@@ -1,5 +1,5 @@
-#include "fpga_interface.h"
-#include "fpga.h"
+#include "qflex/armflex/aws/fpga_interface.h"
+#include "qflex/armflex/aws/fpga.h"
 
 #include <stdint.h>
 #include <string.h>
@@ -30,7 +30,7 @@ int transplant_getState(const FPGAContext *c, uint32_t thread_id, uint64_t *stat
     if(ret) return ret;
     ret = readAXIL(c, base_offset + 2*reg + 1, &reg_val2);
     if(ret) return ret;
-    state[reg] = reg_val1 | ((uint64_t) reg_val2) << 32);
+    state[reg] = reg_val1 | ((uint64_t) reg_val2) << 32;
   }
   return 0;
 }
@@ -54,7 +54,7 @@ int transplant_pushState(const FPGAContext *c, uint32_t thread_id, uint64_t *sta
 
 int transplant_pending(const FPGAContext *c, uint32_t *pending_threads) {
   const uint32_t axi_transplant_ctrl_base = 0x0;
-  uint32_t pending_threads = 0;
+  *pending_threads = 0;
   return readAXIL(c, axi_transplant_ctrl_base + 0, pending_threads);
 }
 
@@ -83,7 +83,7 @@ int registerThreadWithProcess(const FPGAContext *c, uint32_t thread_id, uint32_t
  * 
  * @note associate with S_AXI_QEMU_MQ and S_AXIL_QEMU_MQ
  */ 
-int queryMessageFromFPGA(const FPGAContext *c, int read_fd, uint8_t message[64]){
+int queryMessageFromFPGA(const FPGAContext *c, uint8_t message[64]){
   const uint32_t query_base = 0x2000;
   const uint64_t data_base = 0x1000010000;
   uint32_t res = -1;
@@ -103,7 +103,7 @@ int queryMessageFromFPGA(const FPGAContext *c, int read_fd, uint8_t message[64])
  * 
  * @note associate with S_AXI_QEMU_MQ
  */ 
-int sendMessageToFPGA(const FPGAContext *c, int write_fd,  void *raw_message, size_t message_size){
+int sendMessageToFPGA(const FPGAContext *c, void *raw_message, size_t message_size){
   const uint32_t query_base = 0x2000;
   const uint64_t data_base = 0x1000010000;
   uint32_t res = -1;
@@ -125,7 +125,7 @@ int sendMessageToFPGA(const FPGAContext *c, int write_fd,  void *raw_message, si
  * 
  * @note associate with S_AXI_PAGE
  */ 
-int pushPageToPageBuffer(const FPGAContext *c, int write_fd, void *page){
+int pushPageToPageBuffer(const FPGAContext *c, void *page){
   const uint64_t base = 0x1000000000;
   return writeAXI(c, base + 64, page);
 }
@@ -137,8 +137,8 @@ int pushPageToPageBuffer(const FPGAContext *c, int write_fd, void *page){
  * 
  * @note associate with S_AXI_PAGE
  */ 
-int fetchPageFromPageBuffer(const FPGAContext *c, int read_fd, void *buffer){
+int fetchPageFromPageBuffer(const FPGAContext *c, void *page){
   const uint64_t base = 0x1000000000;
-  return readAXI(c, base, buffer);
+  return readAXI(c, base, page);
 }
 

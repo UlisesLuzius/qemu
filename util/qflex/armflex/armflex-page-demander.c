@@ -114,42 +114,20 @@ static void IPTHvp_evict_Gvp(uint64_t hvp, uint64_t ipt_bits) {
 	}
 }
 
-int armflex_evict_page(CPUState *cpu, uint64_t ipt_bits, void *page) {
-	uint64_t vaddr = IPT_GET_VA(ipt_bits);
-	uint64_t hvp = gva_to_hva(cpu, vaddr & PAGE_MASK, DATA_LOAD);
-	memcpy((void *) hvp, page, PAGE_SIZE);
+int armflex_ipt_evict(uint64_t hvp, uint64_t ipt_bits) {
 	IPTHvp_evict_Gvp(hvp, ipt_bits);
 	return 0;
 }
 
-int armflex_get_page(CPUState *cpu, uint64_t vaddr, int type) {
-	uint64_t hvp = gva_to_hva(cpu, vaddr & PAGE_MASK, type) ;
-	int pid = QFLEX_GET_ARCH(pid)(cpu);
-	uint64_t ipt_bits = IPT_COMPRESS(vaddr, pid, type);
-	if(hvp == -1) {
-		// Page Fault/Permission Violation
-		// armflex_push_resp(cpu, ipt_bits, FAULT); // TODO
+int armflex_ipt_add_entry(uint64_t hvp, uint64_t ipt_bits, uint64_t *synonyms) {
+	synonyms = NULL;
+	size_t cnt = 0;
+	IPTHvp_insert_Gvp(hvp, ipt_bits, &synonyms, &cnt);
+	if(synonyms) {
+		return SYNONYM;
 	} else {
-		// 1. Add entry to IPT
-		uint64_t *chain = NULL; // Synonyms
-		size_t cnt = 0;
-		IPTHvp_insert_Gvp(hvp, ipt_bits, &chain, &cnt);
-
-		// 2. Pack response to FPGA
-		if(chain) {
-			// 2a. Synonyms
-			// armflex_push_resp(cpu, ipt_bits, SYNONYM); // TODO
-			// armflex_push_synonyms(cpu, chain, cnt); // TODO
-		} else {
-			// 2b. send 4K PAGE to FPGA
-			// armflex_push_resp(cpu, ipt_bits, PAGE); // TODO
-			// armflex_push_page(cpu, hvp); // TODO
-		}
-		free(chain);
+		return PAGE;
 	}
-	// Send response to FPGA
-	// armflex_send_message(cpu); // TODO
-    return 0;
 }
 
 void armflex_synchronize_page(CPUState *cpu, uint64_t vaddr, int type) {

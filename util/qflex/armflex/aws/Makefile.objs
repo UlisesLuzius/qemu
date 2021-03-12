@@ -1,0 +1,2 @@
+util-obj-$(CONFIG_AWS) += fpga_aws.o
+util-obj-$(CONFIG_ARMFLEX) += fpga_interface.o

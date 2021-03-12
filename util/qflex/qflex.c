@@ -21,11 +21,6 @@
 #include "qflex/qflex-profiling.h"
 #include "qflex/qflex-traces.h"
 
-#ifdef CONFIG_FA_QFLEX
-#include "qflex/fa-qflex.h"
-#endif
-
-
 qflex_state_t qflexState;
 qflex_pth_t qflexPth;
 

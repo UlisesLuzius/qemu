@@ -57,14 +57,18 @@ typedef struct InvertedPageTable {
 	IPTHvpPtr* entries;
 } InvertedPageTable;
 
+typedef enum PageTypes {
+	PAGE = 0,
+	SYNONYM = 1
+} PageTypes;
 
 /* Call this function when the armflex core has evicted an entry
  */
-int armflex_evict_page(CPUState *cpu, uint64_t ipt_bits, void *page);
+int armflex_ipt_evict(uint64_t hvp, uint64_t ipt_bits);
 	
 /* Call this function when the armflex core requests a new page
  */
-int armflex_get_page(CPUState *cpu, uint64_t vaddr, int type);
+int armflex_ipt_add_entry(uint64_t hvp, uint64_t ipt_bits, uint64_t *synonyms);
 	
 /* Call this function before a tcg_gen_qemu_ld/st is executed
  * to make sure that QEMU has the latest page modifications

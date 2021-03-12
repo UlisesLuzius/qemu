@@ -1,4 +1,5 @@
-#pragma once
+#ifndef FPGA_INTERFACE_H
+#define FPGA_INTERFACE_H
 
 #include <stddef.h>
 #include <stdint.h>
@@ -60,10 +61,12 @@ typedef struct PageFaultNotification {
 // type = 6: FPGA finishes the page eviction (The page is available in the page buffer).
 typedef struct PageEvictNotification {
   MessageType type; // maybe 5(start) or 6(done)
+  uint64_t vpn;
+  uint32_t pid;
   uint32_t ppn;
   uint32_t permission;
   uint32_t modified;
-} QEMUPageEvictNotification;
+} PageEvictNotification;
 
 // Transplant transactions
 int transplant_pushState(const FPGAContext *c, uint32_t thread_id, uint64_t *state, size_t regCount);
@@ -73,9 +76,11 @@ int transplant_pending(const FPGAContext *c, uint32_t *threads);
  
 // Message transactions
 int registerThreadWithProcess(const FPGAContext *c, uint32_t thread_id, uint32_t process_id);
-int queryMessageFromFPGA(const FPGAContext *c, int read_fd, uint8_t message[64]);
-int sendMessageToFPGA(const FPGAContext *c, int write_fd,  void *raw_message, size_t message_size);
+int queryMessageFromFPGA(const FPGAContext *c, uint8_t message[64]);
+int sendMessageToFPGA(const FPGAContext *c, void *raw_message, size_t message_size);
 
 // Page transactions
-int pushPageToPageBuffer(const FPGAContext *c, int write_fd, void *page);
-int fetchPageFromPageBuffer(const FPGAContext *c, int read_fd, void *buffer);
+int pushPageToPageBuffer(const FPGAContext *c, void *page);
+int fetchPageFromPageBuffer(const FPGAContext *c, void *page);
+
+#endif

@@ -50,9 +50,6 @@ static void push_page_fault(uint64_t hvp, uint64_t ipt_bits) {
         reply.s_vpn = IPT_GET_VA(synonyms[0]);
         reply.s_pid = IPT_GET_PID(synonyms[0]);
 	} else if (ret == PAGE) {
-		// 2b. send 4K PAGE to FPGA
- 		// armflex_push_resp(cpu, ipt_bits, PAGE); // TODO
-		// armflex_push_page(cpu, hvp); // TODO
         pushPageToPageBuffer(c, (void*) hvp);
 	}
 
@@ -215,6 +212,9 @@ static void push_cpus(void) {
     while(cpu) {
         cpu2pid_attached[cpu_count] = QFLEX_GET_ARCH(pid)(cpu);
         registerThreadWithProcess(c, cpu_count, cpu2pid_attached[cpu_count]);
+        armflex_pack_archstate(&state, cpu);
+        transplant_pushState(c, cpu_count, (uint64_t *) &state, ARMFLEX_TOT_REGS);
+        transplant_start(c, cpu_count);
         cpu_count++;
     }
 }

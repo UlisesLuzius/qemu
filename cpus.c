@@ -1466,8 +1466,6 @@ int qflex_cpu_step(CPUState *cpu)
 
             r = tcg_cpu_exec(cpu);
 
-            if(qflex_is_broke_loop()) { return r; }
-
             process_icount_data(cpu);
             qemu_mutex_lock_iothread();
 

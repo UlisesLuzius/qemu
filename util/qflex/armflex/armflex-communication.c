@@ -7,9 +7,6 @@
 #include <semaphore.h>
 #include <string.h>
 
-#include "qemu/osdep.h"
-#include "qemu/thread.h"
-
 #include "qflex/qflex-log.h"
 
 #include "qflex/armflex/armflex.h"

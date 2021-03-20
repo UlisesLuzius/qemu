@@ -1,7 +1,4 @@
 #include <stdbool.h>
-#include "qemu/osdep.h"
-#include "qemu/thread.h"
-
 #include "qflex/qflex.h"
 #include "qflex/armflex/armflex.h"
 #include "qflex/armflex/armflex-page-demander.h"

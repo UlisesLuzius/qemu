@@ -142,3 +142,18 @@ int fetchPageFromPageBuffer(const FPGAContext *c, void *page){
   return readAXI(c, base, page);
 }
 
+#ifndef CONFIG_AWS
+#include "qflex/armflex/aws/fpga.h"
+// TODO Bind emulator instead of AWS Shell
+int initFPGAContext(FPGAContext *c){ return -1; }
+
+int readAXIL(const FPGAContext *c, uint32_t addr, uint32_t *data){ return -1; }
+
+int writeAXIL(const FPGAContext *c, uint32_t addr, uint32_t data){ return -1; }
+
+int readAXI(const FPGAContext *c, uint64_t addr, void *data){ return -1; }
+
+int writeAXI(const FPGAContext *c, uint64_t addr, void *data){ return -1; }
+
+int releaseFPGAContext(FPGAContext *c){ return -1; }
+#endif

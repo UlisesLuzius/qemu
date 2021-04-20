@@ -175,14 +175,14 @@ void armflex_trace_protobuf_open(ArmflexCommitTraceP *traceP) {
 	assert(traceP->mem_addr);
 	assert(traceP->mem_data);
 
-    traceP->inst_block_data.len = BLOCK_SIZE;
-	traceP->inst_block_data.data = malloc(BLOCK_SIZE);
+    traceP->inst_block_data.len = ARMFLEX_CACHE_BLOCK_SIZE;
+	traceP->inst_block_data.data = malloc(ARMFLEX_CACHE_BLOCK_SIZE);
 
 	traceP->n_mem_block_data = MAX_MEM_INSTS;
 	traceP->mem_block_data = malloc(sizeof(ProtobufCBinaryData)* traceP->n_mem_block_data);
 	for(int i = 0; i < MAX_MEM_INSTS; i++) {
-	  traceP->mem_block_data[i].len = BLOCK_SIZE;
-	  traceP->mem_block_data[i].data = malloc(BLOCK_SIZE);
+	  traceP->mem_block_data[i].len = ARMFLEX_CACHE_BLOCK_SIZE;
+	  traceP->mem_block_data[i].data = malloc(ARMFLEX_CACHE_BLOCK_SIZE);
 	}
 
 	// Init State
@@ -216,9 +216,9 @@ void armflex_trace_protobuf_pack(ArmflexCommitTrace *trace,
 	stateP->sp = state->sp;
 	stateP->nzcv = state->nzcv;
 
-	memcpy(traceP->inst_block_data.data, &(trace->inst_block_data), BLOCK_SIZE);
+	memcpy(traceP->inst_block_data.data, &(trace->inst_block_data), ARMFLEX_CACHE_BLOCK_SIZE);
 	for (int i = 0; i < traceP->n_mem_block_data; i++) {
-	  memcpy(traceP->mem_block_data[i].data, &(trace->mem_block_data[i]), BLOCK_SIZE);
+	  memcpy(traceP->mem_block_data[i].data, &(trace->mem_block_data[i]), ARMFLEX_CACHE_BLOCK_SIZE);
 	}
 
 	// protobuf struct -> protobuf stream

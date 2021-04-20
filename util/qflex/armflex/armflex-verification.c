@@ -84,8 +84,8 @@ void armflex_gen_verification_add_state(CPUState* cpu, uint64_t addr) {
 	uint32_t inst = *((int32_t *) hva);
 	traceState.inst = inst;
 
-	uint64_t hva_block = hva & ~(BLOCK_SIZE-1);
-    memcpy(&traceState.inst_block_data[0], (void *) hva_block, BLOCK_SIZE);
+	uint64_t hva_block = hva & ~(ARMFLEX_CACHE_BLOCK_SIZE-1);
+    memcpy(&traceState.inst_block_data[0], (void *) hva_block, ARMFLEX_CACHE_BLOCK_SIZE);
 
 	hasTrace = true;
 	inst_count++;
@@ -106,9 +106,9 @@ void armflex_gen_verification_add_mem(CPUState* cpu, uint64_t addr) {
 	traceState.mem_addr[curr_mem] = addr;
 	traceState.mem_data[curr_mem] = data;
 
-	uint64_t hva_block = hva & ~(BLOCK_SIZE-1);
+	uint64_t hva_block = hva & ~(ARMFLEX_CACHE_BLOCK_SIZE-1);
 
-	memcpy(&traceState.mem_block_data[curr_mem], (void *) hva_block, BLOCK_SIZE);
+	memcpy(&traceState.mem_block_data[curr_mem], (void *) hva_block, ARMFLEX_CACHE_BLOCK_SIZE);
 
 
 	curr_mem++;

@@ -2,15 +2,15 @@
 #define ARMFLEX_VERIFICATION_H
 
 #define MAX_MEM_INSTS (2)
-#define BLOCK_SIZE    (64)
+#define ARMFLEX_CACHE_BLOCK_SIZE    (64)
 
 typedef struct ArmflexCommitTrace {
 	ArmflexArchState state;
 	uint32_t inst;
 	uint64_t mem_addr[MAX_MEM_INSTS];
 	uint64_t mem_data[MAX_MEM_INSTS];
-	uint8_t inst_block_data[BLOCK_SIZE];
-	uint8_t mem_block_data[MAX_MEM_INSTS][BLOCK_SIZE];
+	uint8_t inst_block_data[ARMFLEX_CACHE_BLOCK_SIZE];
+	uint8_t mem_block_data[MAX_MEM_INSTS][ARMFLEX_CACHE_BLOCK_SIZE];
 } ArmflexCommitTrace;
 
 bool armflex_gen_verification(void);

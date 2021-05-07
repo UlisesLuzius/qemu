@@ -580,7 +580,7 @@ static inline bool cpu_handle_interrupt(CPUState *cpu,
            True when it is, and we should restart on a new TB,
            and via longjmp via cpu_loop_exit.  */
         else {
-            if (cc->cpu_exec_interrupt(cpu, interrupt_request)) {
+            if (cc->cpu_exec_interrupt(cpu, interrupt_request) ) { // TODO smarter way to not keep interrupting?
                 replay_interrupt();
                 cpu->exception_index = -1;
                 *last_tb = NULL;
@@ -743,8 +743,8 @@ int cpu_exec(CPUState *cpu)
 			/* Depending on execution type, break the main loop */
             switch(qflex_is_type()) {
             case SINGLESTEP:
-                if(qflex_is_inst_done())
-                    goto break_loop;
+				qflex_update_inst_done(true);
+				goto break_loop;
                 break;
 
             case PROLOGUE:

@@ -8,11 +8,8 @@
 #include "qflex/qflex-profiling.h"
 #include "qflex-helper.h"
 #include "qflex/qflex-helper-a64.h"
-#include "qflex/qflex-models.h"
+#include "qflex/qflex-traces.h"
 
-#ifdef CONFIG_FA_QFLEX
-#include "qflex/fa-qflex.h"
-#endif /* CONFIG_FA_QFLEX */
 
 /* TCG helper functions. (See exec/helper-proto.h  and target/arch/helper-a64.h)
  * This one expands prototypes for the helper functions.
@@ -23,30 +20,30 @@
  */
 
 /**
- * @brief HELPER(qflex_ldst_done)
- * Helper gets executed after a LD/ST was successfull
+ * @brief HELPER(qflex_mem_trace)
+ * Helper gets executed before a LD/ST
  */
-void HELPER(qflex_ldst_done)(CPUARMState* env, uint64_t addr, uint64_t isStore) {
+void HELPER(qflex_mem_trace)(CPUARMState* env, uint64_t addr, uint64_t type) {
 	CPUState *cs = CPU(env_archcpu(env));
-	qflex_log_mask(QFLEX_LOG_LDST, "CPU%u:%lu:0x%016lx\n", cs->cpu_index, isStore, addr);
-
-	if(qflex_mem_trace_is_running()) {
-		uint64_t paddr = *((uint64_t *) vaddr_to_paddr(cs, addr));
-		qflex_mem_trace_memaccess(addr, paddr, cs->cpu_index, true, isStore);
+	qflex_log_mask(QFLEX_LOG_LDST, "[MEM]CPU%u:%"PRIu64":0x%016"PRIx64"\n", cs->cpu_index, type, addr);
+    
+    int inst;
+	if(qflex_mem_trace_gen_trace()) {
+		uint64_t paddr = gva_to_hva(cs, addr, type);
+		if(paddr != -1)  {
+//		if(paddr != -1 && arm_current_el(env) != 0)  { // For user-mode tracing
+			qflex_mem_trace_memaccess(addr, paddr, cs->cpu_index, type);
+            if(type == MMU_INST_FETCH) {
+                inst = *(uint32_t *) paddr;
+                qflex_inst_trace(inst, cs->cpu_index);
+            }
+        }
 	}
+
+
 }
 
-/**
- * @brief HELPER(qflex_fetch_pc)
- * Helper gets executed after instruction has been fetched
- */
-void HELPER(qflex_fetch_pc)(CPUARMState* env, uint64_t pc) {
-	if(qflex_mem_trace_is_running()) {
-		CPUState *cs = CPU(env_archcpu(env));
-		uint64_t paddr = *((uint64_t *) vaddr_to_paddr(cs, pc));
-		qflex_mem_trace_memaccess(pc, paddr, cs->cpu_index, false, 0);
-	}
-}
+
 
 
 /**
@@ -131,7 +128,7 @@ static inline void qflex_cmds(uint64_t nop_op) {
 void HELPER(qflex_magic_insn)(CPUARMState *env, uint64_t nop_op) {
     assert(nop_op >= 90);
     assert(nop_op <= 127);
-    qflex_log_mask(QFLEX_LOG_MAGIC_INSN, "MAGIC_INST:%lu\n", nop_op);
+    qflex_log_mask(QFLEX_LOG_MAGIC_INSN, "MAGIC_INST:%"PRIu64"\n", nop_op);
 
     // CPUState *cs = CPU(env_archcpu(env));
  
@@ -166,13 +163,3 @@ void HELPER(qflex_magic_insn)(CPUARMState *env, uint64_t nop_op) {
  * For the moment not needed.
  */
 void HELPER(qflex_exception_return)(CPUARMState *env) { return; }
-
-
-#ifndef CONFIG_QFLEX
-/* Empty GETTERs in case CONFIG_QFLEX is disabled.
- * To see real functions, see original file (op_helper/helper/helper-a64.c)
- */
-uint64_t *vaddr_to_paddr(CPUState *cs, uint64_t vaddr) {
-	return NULL;
-}
-#endif

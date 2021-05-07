@@ -72,7 +72,9 @@ obj-$(TARGET_AARCH64) += pauth_helper.o
 ######################
 # QFLEX functions that require 
 # accessing ARM architecture elements
+ifeq ($(CONFIG_QFLEX), y) 
 obj-$(TARGET_AARCH64) += qflex-arch.o
 obj-$(TARGET_AARCH64) += qflex-helper.o
 obj-$(TARGET_AARCH64) += qflex-profiling.o
+endif
 ######################

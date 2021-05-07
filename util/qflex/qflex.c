@@ -19,12 +19,7 @@
 
 #include "qflex/qflex.h"
 #include "qflex/qflex-profiling.h"
-#include "qflex/qflex-models.h"
-
-#ifdef CONFIG_FA_QFLEX
-#include "qflex/fa-qflex.h"
-#endif
-
+#include "qflex/qflex-traces.h"
 
 qflex_state_t qflexState;
 qflex_pth_t qflexPth;
@@ -47,13 +42,13 @@ void qflex_api_values_init(CPUState *cpu) {
 
 int qflex_prologue(CPUState *cpu) {
     int ret = 0;
-    qflex_log_mask(QFLEX_LOG_GENERAL, "QFLEX: PROLOGUE START:%08lx\n"
+    qflex_log_mask(QFLEX_LOG_GENERAL, "QFLEX: PROLOGUE START:%08"PRIx64"\n"
                    "    -> Skips initial snapshot load long interrupt routine to normal user program\n", QFLEX_GET_ARCH(pc)(cpu));
     qflex_update_exec_type(PROLOGUE);
     while(!qflex_is_prologue_done()) {
         ret = qflex_cpu_step(cpu);
     }
-    qflex_log_mask(QFLEX_LOG_GENERAL, "QFLEX: PROLOGUE END  :%08lx\n", QFLEX_GET_ARCH(pc)(cpu));
+    qflex_log_mask(QFLEX_LOG_GENERAL, "QFLEX: PROLOGUE END  :%08"PRIx64"\n", QFLEX_GET_ARCH(pc)(cpu));
     qflex_update_inst_done(false);
     return ret;
 }
@@ -61,10 +56,13 @@ int qflex_prologue(CPUState *cpu) {
 int qflex_singlestep(CPUState *cpu) {
     int ret = 0;
     qflex_update_exec_type(SINGLESTEP);
+
     while(!qflex_is_inst_done()) {
         ret = qflex_cpu_step(cpu);
     }
+
     qflex_update_inst_done(false);
+
     return ret;
 }
 
@@ -130,7 +128,3 @@ int qflex_adaptative_execution(CPUState *cpu) {
         }
     }
 }
-
-#ifndef CONFIG_QFLEX
-int qflex_cpu_step(CPUState *cpu) {return 0;}
-#endif

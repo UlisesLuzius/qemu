@@ -13,7 +13,7 @@
 #include "qflex/qflex-config.h"
 #include "qflex/qflex.h"
 #include "qflex/qflex-log.h"
-#include "qflex/qflex-models.h"
+#include "qflex/qflex-traces.h"
 
 QemuOptsList qemu_qflex_opts = {
     .name = "qflex",
@@ -38,10 +38,14 @@ QemuOptsList qemu_qflex_opts = {
 };
 
 QemuOptsList qemu_qflex_gen_mem_trace_opts = {
-    .name = "qflex-gen-mem_trace",
+    .name = "qflex-gen-mem-trace",
     .merge_lists = true,
     .head = QTAILQ_HEAD_INITIALIZER(qemu_qflex_gen_mem_trace_opts.head),
     .desc = {
+        {
+            .name = "core_count",
+            .type = QEMU_OPT_NUMBER,
+        },
         { /* end of list */ }
     },
 };
@@ -74,7 +78,8 @@ static void qflex_log_configure(const char *opts) {
 }
 
 static void qflex_gen_mem_trace_configure(QemuOpts *opts, Error **errp) {
-	qflex_mem_trace_init();
+    int core_count = qemu_opt_get_number(opts, "core_count", 1);
+	qflex_mem_trace_init(core_count);
 }
 
 int qflex_parse_opts(int index, const char *optarg, Error **errp) {

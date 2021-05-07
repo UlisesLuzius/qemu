@@ -1818,6 +1818,19 @@ ERST
 #ifdef CONFIG_QFLEX
 
     {
+        .name       = "qflex-singlestep-start",
+        .args_type  = "",
+        .params     = "",
+        .help       = "start singlestepping",
+        .cmd        = hmp_qflex_singlestep_start,
+    },
+
+SRST
+``qflex-singlestep-start``
+  Start singlestepping, change control flow to QFLEX
+ERST
+
+    {
         .name       = "qflex-mem-trace-start",
         .args_type  = "nb_insn:i",
         .params     = "nb_insn",

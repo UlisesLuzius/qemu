@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <stdbool.h>
 #include <errno.h>
 #include <string.h>
@@ -57,6 +58,7 @@ typedef struct mem_access_t {
 
 static size_t total_insts = 0;
 static size_t total_mem = 0;
+static size_t core_count = 0;
 static cache_model_t iCache;
 static cache_model_t dCache;
 static cache_model_t iTLB;
@@ -120,11 +122,13 @@ static inline size_t get_cache_tag(cache_model_t* cache, size_t addr) {
     return addr >> cache->block_size;
 }
 
-static inline size_t get_cache_slot(cache_model_t* cache, size_t addr) {
+static inline size_t get_cache_slot(cache_model_t* cache, size_t pid, size_t addr) {
+	size_t pidMask = core_count-1;
     size_t bits = addr >> cache->block_size;
+	bits &= ~pidMask;
+	bits |= pid;
     size_t slot = bits % cache->sets;
     return slot * cache->associativity;
-
 }
 
 static inline size_t cache_get_lru(cache_model_t* cache, size_t slot) {
@@ -137,7 +141,6 @@ static inline size_t cache_get_lru(cache_model_t* cache, size_t slot) {
             lru = slot+i;
             time = entry.time;
         }
-
     }
     return lru;
 }
@@ -146,7 +149,7 @@ static inline bool cache_access(cache_model_t* cache, size_t addr, char pid) {
 
     bool is_hit = false;
     size_t tag = get_cache_tag(cache, addr);
-    size_t slot = get_cache_slot(cache, addr);
+    size_t slot = get_cache_slot(cache, pid, addr);
     size_t idx = 0;
 	cache_entry_t* entry = &cache->entries[0];
 
@@ -213,13 +216,14 @@ static inline void cache_log_stats(char *buffer, size_t max_size) {
 	double PageFaultPercent = (double) TLB.misses / (double) (total_insts + total_mem);
 
 	size_t tot_chars = snprintf(buffer, max_size, 
-						 "%zu, %zu, %.5f, %zu, %zu, %.5f\n"
-						 "%zu, %.5f, %zu, %.5f, %zu, %.5f, %.5f\n"
-						 , 
-						 total_insts, iCache.misses, iCachePercent, 
-						 total_mem, dCache.misses, dCachePercent,
-						 iTLB.misses, iTLBPercent, dTLB.misses, dTLBPercent, 
-						 TLB.misses, TLBPercent, PageFaultPercent);
+						"inst : %+8zu, %+4zu, %.5f \n"
+						"mem  : %+8zu, %+4zu, %.5f \n"
+						"TLB  : %+4zu, %.5f, %+4zu, %.5f\n"
+						"PT   : %+4zu, %.5f, %.5f\n", 
+						total_insts, iCache.misses, iCachePercent, 
+						total_mem, dCache.misses, dCachePercent,
+						iTLB.misses, iTLBPercent, dTLB.misses, dTLBPercent, 
+						TLB.misses, TLBPercent, PageFaultPercent);
 
 
 	if(tot_chars > max_size) {
@@ -243,12 +247,31 @@ static inline void parse_line_fast(char* line, mem_access_t* mem) {
 	mem->isStore = isStore ? true : false;
 }
 
+typedef struct mem_trace_data {
+	uint32_t type;
+	uint64_t addr;
+	uint64_t hwaddr;
+} mem_trace_data;
+
+#define PATH_MAX 4096
+#define ROOT_DIR "/tmp/qflex"
 int main(int argc, char *argv[]) { 
-	const char *filename = argv[1];
-	FILE *file = fopen(filename, "r");
-	char *line;
-	size_t line_size = 0;
-	mem_access_t mem;
+	//const char *filename = argv[1];
+	core_count = atoi(argv[1]);
+	if(core_count>64) exit(1);
+	
+	char filepath[PATH_MAX];
+	char filename[sizeof "mem_trace_00"];
+	FILE **files = calloc(core_count, sizeof(FILE*));
+	int available = 0;
+
+ 	for(int i = 0; i < core_count; i++) { 
+		sprintf(filename, "mem_trace_%02d", i);
+      	snprintf(filepath, PATH_MAX, ROOT_DIR"/%s", filename);
+		files[i] = fopen(filepath, "r");
+		available |= 1 << i;
+	}
+
 
 	size_t sets, associativity, block_size;
 	for(int cache_id = ID_ICache; cache_id < ID_UNDEF; cache_id++) {
@@ -256,19 +279,45 @@ int main(int argc, char *argv[]) {
 		associativity = atoi(argv[3*cache_id + 3]);
 		block_size = atoi(argv[3*cache_id + 4]);
 		cache_init(cache_id, sets, block_size, associativity);
-		printf("%lu, %lu, %lu,\n", 
-			   sets, associativity, block_size);
-		//printf("%s: %lu %lu %lu\n", 
-		//	   get_str[cache_id].str, sets, associativity, block_size);
+		//printf("%lu, %lu, %lu,\n", 
+		//	   sets, associativity, block_size);
+		printf("%s: %lu %lu %lu\n", 
+			   get_str[cache_id].str, sets, associativity, block_size);
 	}
 
-	while(getline(&line, &line_size, file) > 0) {
-		parse_line_fast(line, &mem);
-		model_memaccess(mem);
-	}
+    int rdSize = 0;
+	mem_trace_data trace;
+	mem_access_t mem;
+	bool done = false;
+	while (available && !done) {
+	    for(int cpu = 0; cpu < core_count; cpu++) {
+			if(available & 1 << cpu) {
+				rdSize = fread(&trace, sizeof(mem_trace_data), 1, files[cpu]);
+				if(rdSize != 1) {
+					available &= ~(1 << cpu);
+					fclose(files[cpu]);
+					done = true;
+				} else {
+					mem.isData = trace.type != 2;
+					mem.isStore = trace.type == 1;
+					mem.paddr = trace.hwaddr;
+					mem.vaddr = trace.addr;
+					mem.pid = cpu;
+			        model_memaccess(mem);
+				}
+			}
+	    }
+    }
+
+	//char *line;
+	//size_t line_size = 0;
+	//while(getline(&line, &line_size, file) > 0) {
+	//	parse_line_fast(line, &mem);
+	//	model_memaccess(mem);
+	//}
 	cache_model_log_direct();
 
-	free(line);
+	//free(line);
 	cache_end();
 
 	return 0;

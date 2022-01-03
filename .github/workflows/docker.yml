@@ -2,7 +2,6 @@ on:
   push:
     branches:
       - 'armflex-6.0-dev'
-      - 'docker_equipped'
 
 jobs:
   docker:

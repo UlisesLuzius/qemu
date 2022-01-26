@@ -22,7 +22,7 @@
 
 #include <glib.h>
 
-DevteroflexConfig devteroflexConfig = { false, false };
+DevteroflexConfig devteroflexConfig = { false, false, false };
 static FPGAContext c;
 static DevteroflexArchState state;
 
@@ -343,10 +343,27 @@ static void devteroflex_prepare_singlestepping(void) {
     }
 }
 
+static void devteroflex_emulation_flow(void) {
+    CPUState *cpu;
+    while(1) {
+        CPU_FOREACH(cpu) { 
+            qflex_singlestep(cpu);
+            // If DevteroFlex stopped executing, pull all cpu's back
+            if(!devteroflex_is_running()) {
+                break;
+            }
+        }
+    }
+}
+
 int devteroflex_singlestepping_flow(void) {
     qemu_log("DEVTEROFLEX: FPGA START\n");
     devteroflex_prepare_singlestepping();
-    devteroflex_execution_flow();
+    if(devteroflexConfig.is_emulation) {
+        devteroflex_emulation_flow();
+    } else {
+      devteroflex_execution_flow();
+    }
     qemu_log("DEVTEROFLEX: FPGA EXIT\n");
     devteroflex_stop_full();
     return 0;
@@ -368,19 +385,21 @@ void devteroflex_stop_full(void) {
     //qflex_mem_trace_stop();
 }
 
-void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages) {
+void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, bool is_emulation) {
     devteroflexConfig.enabled = enabled;
     devteroflexConfig.running = run;
+    devteroflexConfig.is_emulation = is_emulation;
     if(fpga_physical_pages != -1) {
-        initFPGAContext(&c);
-        if (fpga_paddr_init_manager(fpga_physical_pages, c.base_address.page_base)) {
-            perror("DevteroFlex: Couldn't init the stack for keepign track of free phyiscal pages in the fpga.\n");
-            exit(EXIT_FAILURE);
+        if(!is_emulation){
+            initFPGAContext(&c);
+            if (fpga_paddr_init_manager(fpga_physical_pages, c.base_address.page_base)) {
+                perror("DevteroFlex: Couldn't init the stack for keepign track of free phyiscal pages in the fpga.\n");
+                exit(EXIT_FAILURE);
+            }
         }
-        // TODO choose smarter hashing
-        // Hashing function is straight forward modulo
+        // Initialize the inverted page table.
         ipt_init();
-        // Initialize the tpt.
+        // Initialize the temporal page table.
         tpt_init();
     }
 }

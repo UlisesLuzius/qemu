@@ -22,11 +22,12 @@ typedef enum MemoryAccessType {
 typedef struct DevteroflexConfig {
     bool enabled;
     bool running;
+    bool is_emulation;
 } DevteroflexConfig;
 
 extern DevteroflexConfig devteroflexConfig;
 
-void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages);
+void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, bool is_emulation);
 
 static inline void devteroflex_start(void) {
     devteroflexConfig.enabled = true;

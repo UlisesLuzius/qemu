@@ -356,16 +356,19 @@ static void devteroflex_emulation_flow(void) {
     assert(devteroflexConfig.emulation_log != NULL);
     while(1) {
         CPU_FOREACH(cpu) { 
-            qflex_singlestep(cpu);
             // record the state of the current CPU.
             devteroflex_pack_archstate(&state, cpu);
             // pack the state into a protobuf binary.
-            size_t buf_size = 0;
-            void *byte_stream = devteroflex_pack_protobuf(&state, &buf_size);
+            // size_t buf_size = 0;
+            // void *byte_stream = devteroflex_pack_protobuf(&state, &buf_size);
             // push the binary into a file.
-            fwrite(byte_stream, 1, buf_size, devteroflexConfig.emulation_log);
-            free(byte_stream);
+            fwrite(&state, sizeof(state), 1, devteroflexConfig.emulation_log);
+            // free(byte_stream);
             // If DevteroFlex stopped executing, pull all cpu's back
+            qflex_singlestep(cpu);
+            while(QFLEX_GET_ARCH(el)(cpu) != 0){
+                qflex_singlestep(cpu);
+            }
             if(!devteroflex_is_running()) {
                 break;
             }

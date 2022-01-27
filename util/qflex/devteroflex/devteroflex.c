@@ -1,4 +1,5 @@
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "qemu/osdep.h"
@@ -11,6 +12,7 @@
 #include "qflex/devteroflex/devteroflex.h"
 #include "qflex/devteroflex/demand-paging.h"
 #include "qflex/qflex-traces.h"
+#include "qflex/devteroflex/verification.h"
 
 #ifdef AWS_FPGA
 #include "qflex/devteroflex/aws/fpga.h"
@@ -22,7 +24,13 @@
 
 #include <glib.h>
 
-DevteroflexConfig devteroflexConfig = { false, false, false };
+DevteroflexConfig devteroflexConfig = { 
+    .emulation_log = NULL,
+    .is_emulation = false,
+    .enabled = false,
+    .running = false,
+};
+
 static FPGAContext c;
 static DevteroflexArchState state;
 
@@ -345,15 +353,25 @@ static void devteroflex_prepare_singlestepping(void) {
 
 static void devteroflex_emulation_flow(void) {
     CPUState *cpu;
+    assert(devteroflexConfig.emulation_log != NULL);
     while(1) {
         CPU_FOREACH(cpu) { 
             qflex_singlestep(cpu);
+            // record the state of the current CPU.
+            devteroflex_pack_archstate(&state, cpu);
+            // pack the state into a protobuf binary.
+            size_t buf_size = 0;
+            void *byte_stream = devteroflex_pack_protobuf(&state, &buf_size);
+            // push the binary into a file.
+            fwrite(byte_stream, 1, buf_size, devteroflexConfig.emulation_log);
+            free(byte_stream);
             // If DevteroFlex stopped executing, pull all cpu's back
             if(!devteroflex_is_running()) {
                 break;
             }
         }
     }
+    fflush(devteroflexConfig.emulation_log);
 }
 
 int devteroflex_singlestepping_flow(void) {
@@ -396,6 +414,10 @@ void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, bool i
                 perror("DevteroFlex: Couldn't init the stack for keepign track of free phyiscal pages in the fpga.\n");
                 exit(EXIT_FAILURE);
             }
+            devteroflexConfig.emulation_log = NULL;
+        } else {
+            // open the log file.
+            devteroflexConfig.emulation_log = fopen("devteroflex_emulation_log.proto", "wb");
         }
         // Initialize the inverted page table.
         ipt_init();

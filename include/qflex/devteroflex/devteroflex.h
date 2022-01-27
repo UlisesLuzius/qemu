@@ -23,6 +23,7 @@ typedef struct DevteroflexConfig {
     bool enabled;
     bool running;
     bool is_emulation;
+    FILE *emulation_log;
 } DevteroflexConfig;
 
 extern DevteroflexConfig devteroflexConfig;

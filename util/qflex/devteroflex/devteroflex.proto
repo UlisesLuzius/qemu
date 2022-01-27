@@ -16,3 +16,14 @@ message DevteroflexCommitTrace_p {
 	bytes inst_block_data = 5;
 	repeated bytes mem_block_data = 6;
 }
+
+// compressed version
+message DevteroflexDebugLogItem_p {
+	uint32 instruction = 1; // the instruction itself. (How can I get it?)
+	message UpdatedRegister {
+		uint32 id = 1; // 0 - 31: register, 32: PC, 33: SP, 34: nzcv
+		uint64 value = 2;
+	};
+	repeated UpdatedRegister updates = 2; // which register is updated?
+}
+

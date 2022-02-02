@@ -158,7 +158,7 @@ void HELPER(qflex_mem_trace)(CPUARMState* env, uint64_t addr, uint64_t type) {
     }
 
 #ifdef CONFIG_DEVTEROFLEX
-    if(devteroflex_is_enabled() && !devteroflexConfig.is_emulation) {
+    if(devteroflex_is_enabled()) {
         if(type != MMU_INST_FETCH) {
             devteroflex_synchronize_page(cs, addr, type);
         }

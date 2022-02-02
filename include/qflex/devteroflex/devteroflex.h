@@ -22,8 +22,7 @@ typedef enum MemoryAccessType {
 typedef struct DevteroflexConfig {
     bool enabled;
     bool running;
-    bool is_emulation;
-    FILE *emulation_log;
+    bool is_debug;
 } DevteroflexConfig;
 
 extern DevteroflexConfig devteroflexConfig;

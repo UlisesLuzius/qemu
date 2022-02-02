@@ -25,8 +25,7 @@
 #include <glib.h>
 
 DevteroflexConfig devteroflexConfig = { 
-    .emulation_log = NULL,
-    .is_emulation = false,
+    .is_debug = false,
     .enabled = false,
     .running = false,
 };
@@ -351,40 +350,10 @@ static void devteroflex_prepare_singlestepping(void) {
     }
 }
 
-static void devteroflex_emulation_flow(void) {
-    CPUState *cpu;
-    assert(devteroflexConfig.emulation_log != NULL);
-    while(1) {
-        CPU_FOREACH(cpu) { 
-            // record the state of the current CPU.
-            devteroflex_pack_archstate(&state, cpu);
-            // pack the state into a protobuf binary.
-            // size_t buf_size = 0;
-            // void *byte_stream = devteroflex_pack_protobuf(&state, &buf_size);
-            // push the binary into a file.
-            fwrite(&state, sizeof(state), 1, devteroflexConfig.emulation_log);
-            // free(byte_stream);
-            // If DevteroFlex stopped executing, pull all cpu's back
-            qflex_singlestep(cpu);
-            while(QFLEX_GET_ARCH(el)(cpu) != 0){
-                qflex_singlestep(cpu);
-            }
-            if(!devteroflex_is_running()) {
-                break;
-            }
-        }
-    }
-    fflush(devteroflexConfig.emulation_log);
-}
-
 int devteroflex_singlestepping_flow(void) {
     qemu_log("DEVTEROFLEX: FPGA START\n");
     devteroflex_prepare_singlestepping();
-    if(devteroflexConfig.is_emulation) {
-        devteroflex_emulation_flow();
-    } else {
-      devteroflex_execution_flow();
-    }
+    devteroflex_execution_flow();
     qemu_log("DEVTEROFLEX: FPGA EXIT\n");
     devteroflex_stop_full();
     return 0;
@@ -406,21 +375,19 @@ void devteroflex_stop_full(void) {
     //qflex_mem_trace_stop();
 }
 
-void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, bool is_emulation) {
+void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, bool is_debug) {
     devteroflexConfig.enabled = enabled;
     devteroflexConfig.running = run;
-    devteroflexConfig.is_emulation = is_emulation;
+    devteroflexConfig.is_debug = is_debug;
     if(fpga_physical_pages != -1) {
-        if(!is_emulation){
+        if(!is_debug){
             initFPGAContext(&c);
             if (fpga_paddr_init_manager(fpga_physical_pages, c.base_address.page_base)) {
                 perror("DevteroFlex: Couldn't init the stack for keepign track of free phyiscal pages in the fpga.\n");
                 exit(EXIT_FAILURE);
             }
-            devteroflexConfig.emulation_log = NULL;
         } else {
             // open the log file.
-            devteroflexConfig.emulation_log = fopen("devteroflex_emulation_log.proto", "wb");
         }
         // Initialize the inverted page table.
         ipt_init();

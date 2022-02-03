@@ -40,6 +40,20 @@ void devteroflex_unpack_archstate(CPUState *cpu, DevteroflexArchState *devterofl
     env->ZF = !(nzcv & ARCH_PSTATE_ZF_MASK) ? 1 : 0;
 }
 
+bool devteroflex_compare_archstate(const CPUState *cpu, const DevteroflexArchState *devteroflex) {
+    const CPUARMState *env = cpu->env_ptr;
+
+    for(int i = 0; i < 32; ++i) {
+        if(env->xregs[i] != devteroflex->xregs[i]) return true;
+    }
+
+    if(env->pc != devteroflex->pc) return true;
+
+    // we didn't compare the NZCV now.
+
+    return false;
+}
+
 /** devteroflex_example_instrumentation
  *  This function is an inserted callback to be executed on an instruction execution.
  *  Instrumenting instruction execution in such fashion slowdowns significantly QEMU

@@ -95,6 +95,16 @@ void devteroflex_pack_archstate(DevteroflexArchState *devteroflex, CPUState *cpu
 void devteroflex_unpack_archstate(CPUState *cpu, DevteroflexArchState *devteroflex);
 
 /**
+ * @brief Compare the QEMU CPUState with Devteroflex arch state.
+ * 
+ * @param cpu the QEMU CPUState
+ * @param devteroflex the Devteroflex arch state
+ * 
+ * @return true if any register mismatch is detected.
+ */
+bool devteroflex_compare_archstate(const CPUState *cpu, const DevteroflexArchState *devteroflex);
+
+/**
  * @brief devteroflex_get_load_addr
  * Translates from guest virtual address to host virtual address
  * NOTE: In case of FAULT, the caller should:

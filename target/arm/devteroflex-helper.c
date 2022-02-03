@@ -23,7 +23,7 @@ void devteroflex_pack_archstate(DevteroflexArchState *devteroflex, CPUState *cpu
         ((env->VF & (1<<31)) ? 1 << ARCH_PSTATE_VF_MASK : 0) |
         ((env->NF & (1<<31)) ? 1 << ARCH_PSTATE_NF_MASK : 0) |
         (!(env->ZF)          ? 1 << ARCH_PSTATE_ZF_MASK : 0);
-    devteroflex->nzcv = nzcv;
+    devteroflex->flags = nzcv;
 }
 
 void devteroflex_unpack_archstate(CPUState *cpu, DevteroflexArchState *devteroflex) {
@@ -33,7 +33,7 @@ void devteroflex_unpack_archstate(CPUState *cpu, DevteroflexArchState *devterofl
     env->pc = devteroflex->pc;
     env->sp_el[QFLEX_GET_ARCH(el)(cpu)] = devteroflex->sp;
 
-    uint32_t nzcv = devteroflex->nzcv;
+    uint32_t nzcv = devteroflex->flags;
     env->CF = (nzcv & ARCH_PSTATE_CF_MASK) ? 1 : 0;
     env->VF = (nzcv & ARCH_PSTATE_VF_MASK) ? (1 << 31) : 0;
     env->NF = (nzcv & ARCH_PSTATE_NF_MASK) ? (1 << 31) : 0;

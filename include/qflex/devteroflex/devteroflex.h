@@ -70,7 +70,7 @@ typedef struct DevteroflexArchState {
 	uint64_t xregs[32];
 	uint64_t pc;
 	uint64_t sp;
-	uint64_t nzcv;
+	uint64_t flags;
 } DevteroflexArchState;
 
 /** Serializes the DEVTEROFLEX architectural state to be transfered with protobuf.

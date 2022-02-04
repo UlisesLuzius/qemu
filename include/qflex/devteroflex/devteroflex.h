@@ -6,8 +6,15 @@
 #include "qemu/osdep.h"
 #include "qemu/thread.h"
 #include "qflex/qflex.h"
+#ifdef AWS_FPGA
+#include "qflex/devteroflex/aws/fpga_interface.h"
+#else
+#include "qflex/devteroflex/simulation/fpga_interface.h"
+#endif
 
-#define PAGE_SIZE (4096)
+#ifndef PAGE_SIZE
+#define PAGE_SIZE (4096LLU)
+#endif
 
 #ifndef MemoryAccessType
 // See cpu.h to match MMUAccessType
@@ -53,25 +60,6 @@ static inline bool devteroflex_is_enabled(void) { return devteroflexConfig.enabl
  * (target/arm/devteroflex-helper.c)
  */
 
-/* This describes layour of arch state elements
- *
- * XREGS: uint64_t
- * PC   : uint64_t
- * SP   : uint64_t
- * CF/VF/NF/ZF : uint64_t
- */
-#define ARCH_PSTATE_NF_MASK     (3)    // 64bit 3
-#define ARCH_PSTATE_ZF_MASK     (2)    // 64bit 2
-#define ARCH_PSTATE_CF_MASK     (1)    // 64bit 1
-#define ARCH_PSTATE_VF_MASK     (0)    // 64bit 0
-#define DEVTEROFLEX_TOT_REGS    (35)
-
-typedef struct DevteroflexArchState {
-	uint64_t xregs[32];
-	uint64_t pc;
-	uint64_t sp;
-	uint64_t flags;
-} DevteroflexArchState;
 
 /** Serializes the DEVTEROFLEX architectural state to be transfered with protobuf.
  * @brief devteroflex_(un)serialize_archstate
@@ -102,7 +90,7 @@ void devteroflex_unpack_archstate(CPUState *cpu, DevteroflexArchState *devterofl
  * 
  * @return true if any register mismatch is detected.
  */
-bool devteroflex_compare_archstate(const CPUState *cpu, const DevteroflexArchState *devteroflex);
+bool devteroflex_compare_archstate(const CPUState *cpu, DevteroflexArchState *devteroflex);
 
 /**
  * @brief devteroflex_get_load_addr

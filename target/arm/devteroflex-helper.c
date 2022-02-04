@@ -40,7 +40,7 @@ void devteroflex_unpack_archstate(CPUState *cpu, DevteroflexArchState *devterofl
     env->ZF = !(nzcv & ARCH_PSTATE_ZF_MASK) ? 1 : 0;
 }
 
-bool devteroflex_compare_archstate(const CPUState *cpu, const DevteroflexArchState *devteroflex) {
+bool devteroflex_compare_archstate(const CPUState *cpu, DevteroflexArchState *devteroflex) {
     const CPUARMState *env = cpu->env_ptr;
 
     for(int i = 0; i < 32; ++i) {

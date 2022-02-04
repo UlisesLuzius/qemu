@@ -14,14 +14,6 @@
 #include "qflex/qflex-traces.h"
 #include "qflex/devteroflex/verification.h"
 
-#ifdef AWS_FPGA
-#include "qflex/devteroflex/aws/fpga.h"
-#include "qflex/devteroflex/aws/fpga_interface.h"
-#else
-#include "qflex/devteroflex/simulation/fpga.h"
-#include "qflex/devteroflex/simulation/fpga_interface.h"
-#endif
-
 #include <glib.h>
 
 DevteroflexConfig devteroflexConfig = { 
@@ -45,7 +37,7 @@ static void run_transplant(CPUState *cpu, uint32_t thread) {
     assert(cpu->cpu_index == thread);
     assert(cpu_in_fpga(thread));
     cpu_pull_fpga(cpu->cpu_index);
-    transplant_getState(&c, thread, (uint64_t *) &state, DEVTEROFLEX_TOT_REGS);
+    transplant_getState(&c, thread, (uint64_t *) &state);
 
     // In debug mode, we should advance the QEMU by one step and do comparison.
     if(devteroflexConfig.is_debug) {
@@ -62,8 +54,8 @@ static void run_transplant(CPUState *cpu, uint32_t thread) {
         devteroflex_unpack_archstate(cpu, &state);
     }
 
-    // in case it's an exception or page fault (TODO).
-    if(state.flags & 0x8000000000000000UL) {
+    // in case it's an exception or page fault.
+    if(FLAGS_GET_IS_EXCEPTION(state.flags) | FLAGS_GET_IS_UNDEF(state.flags)) {
         if(devteroflex_is_running()) {
             // Execute the exception instruction
             qflex_singlestep(cpu);
@@ -77,7 +69,7 @@ static void run_transplant(CPUState *cpu, uint32_t thread) {
                 cpu_push_fpga(cpu->cpu_index);
                 register_asid(QFLEX_GET_ARCH(asid)(cpu), QFLEX_GET_ARCH(asid_reg)(cpu));
                 devteroflex_pack_archstate(&state, cpu);
-                transplant_pushState(&c, thread, (uint64_t *) &state, DEVTEROFLEX_TOT_REGS);
+                transplant_pushState(&c, thread, (uint64_t *) &state);
                 transplant_start(&c, thread);
             }
         }
@@ -102,7 +94,7 @@ static void transplant_push_all_cpus(void) {
         registerThreadWithProcess(&c, cpu->cpu_index, QFLEX_GET_ARCH(asid)(cpu));
         register_asid(QFLEX_GET_ARCH(asid)(cpu), QFLEX_GET_ARCH(asid_reg)(cpu));
         devteroflex_pack_archstate(&state, cpu);
-        transplant_pushState(&c, cpu->cpu_index, (uint64_t *)&state, DEVTEROFLEX_TOT_REGS);
+        transplant_pushState(&c, cpu->cpu_index, (uint64_t *)&state);
         transplant_start(&c, cpu->cpu_index);
     }
 }
@@ -114,7 +106,7 @@ static void transplant_pull_all_cpus(void) {
         if(!cpu_in_fpga(cpu->cpu_index)) {
             qemu_log("DevteroFlex: WARNING: Forcing transplants back doesn't stop execution yet.\n");
             cpu_pull_fpga(cpu->cpu_index);
-            transplant_getState(&c, cpu->cpu_index, (uint64_t *) &state, DEVTEROFLEX_TOT_REGS);
+            transplant_getState(&c, cpu->cpu_index, (uint64_t *) &state);
             devteroflex_unpack_archstate(cpu, &state);
         }
     }

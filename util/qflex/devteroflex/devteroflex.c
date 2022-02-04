@@ -47,7 +47,7 @@ static void run_transplant(CPUState *cpu, uint32_t thread) {
         if(devteroflex_compare_archstate(cpu, &state)) {
             // Dangerous!!!
             qemu_log("Warning: An architecture state mismatch has been detected. Quitting QEMU now. \n");
-            exit(-1);
+            abort();
         }
     } else {
         // the state is moved back.
@@ -173,7 +173,7 @@ static void handle_evict_writeback(MessageFPGA * message) {
             if(page_in_qemu[i] != page_buffer[i]){
                 // Dangerous!
                 qemu_log("Page mismatching is detected.\n VA: %lx, ASID: %x, PERM: %lu \n", gvp, asid, perm);                
-                exit(-1);
+                abort();
             }
         }
     } else {
@@ -253,7 +253,7 @@ static void message_run(MessageFPGA message) {
         break;
     default:
         perror("Message type received by FPGA doesn't match any of the existing types.\n");
-        exit(EXIT_FAILURE);
+        abort();
         break;
     }
 }
@@ -309,7 +309,7 @@ void page_eviction_wait_complete(uint64_t *ipt_list, int count) {
                         left--;
                     } else {
                         perror("DevteroFlex: Message should have been an evict response while synchronizing page\n.");
-                        exit(EXIT_FAILURE);
+                        abort();
                     }
 
                     break; // Break search for matching entry
@@ -323,7 +323,7 @@ void page_eviction_wait_complete(uint64_t *ipt_list, int count) {
                 message_buffer_curr_entry++;
                 if(message_buffer_curr_entry>256) {
                     perror("DevteroFlex: Ran out of message entries.\n");
-                    exit(EXIT_FAILURE);
+                    abort();
                 }
             }
         }
@@ -407,14 +407,10 @@ void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, bool i
     devteroflexConfig.running = run;
     devteroflexConfig.is_debug = is_debug;
     if(fpga_physical_pages != -1) {
-        if(!is_debug){
-            initFPGAContext(&c);
-            if (fpga_paddr_init_manager(fpga_physical_pages, c.base_address.page_base)) {
-                perror("DevteroFlex: Couldn't init the stack for keepign track of free phyiscal pages in the fpga.\n");
-                exit(EXIT_FAILURE);
-            }
-        } else {
-            // open the log file.
+        initFPGAContext(&c);
+        if (fpga_paddr_init_manager(fpga_physical_pages, c.base_address.page_base)) {
+            perror("DevteroFlex: Couldn't init the stack for keepign track of free phyiscal pages in the fpga.\n");
+            abort();
         }
         // Initialize the inverted page table.
         ipt_init();

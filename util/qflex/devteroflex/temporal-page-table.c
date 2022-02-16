@@ -56,3 +56,27 @@ void tpt_add_entry(uint64_t ipt_bits, uint64_t hvp) {
   
   g_hash_table_insert(tpt, ipt_bits_index, hvp_value);
 }
+
+uint64_t *tpt_all_keys(uint64_t *count) {
+  *count = g_hash_table_size(tpt);
+
+  if(g_hash_table_size(tpt) == 0) {
+    return NULL;
+  }
+
+  uint64_t *result = calloc(g_hash_table_size(tpt), sizeof(uint64_t));
+
+  GHashTableIter iter;
+  gpointer ipt_bits_ptr;
+  gpointer hvp_ptr;
+  g_hash_table_iter_init(&iter, tpt);
+
+  int index = 0;
+  while(g_hash_table_iter_next(&iter, &ipt_bits_ptr, &hvp_ptr)){
+      result[index] = *(uint64_t *)ipt_bits_ptr;
+      index += 1;
+  }
+
+
+  return result;
+}

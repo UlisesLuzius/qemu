@@ -37,6 +37,10 @@
 #include "semihosting/common-semi.h"
 #endif
 
+#ifdef CONFIG_DEVTEROFLEX
+#include "qflex/devteroflex/devteroflex-mmu.h"
+#endif
+
 #define ARM_CPU_FREQ 1000000000 /* FIXME: 1 GHz, should be configurable */
 #define PMCR_NUM_COUNTERS 4 /* QEMU IMPDEF choice */
 
@@ -760,6 +764,11 @@ static void tlbiall_write(CPUARMState *env, const ARMCPRegInfo *ri,
     } else {
         tlb_flush(cs);
     }
+
+#ifdef CONFIG_DEVTEROFLEX
+    devteroflex_mmu_flush_all();
+#endif
+
 }
 
 static void tlbimva_write(CPUARMState *env, const ARMCPRegInfo *ri,
@@ -774,6 +783,14 @@ static void tlbimva_write(CPUARMState *env, const ARMCPRegInfo *ri,
     } else {
         tlb_flush_page(cs, value);
     }
+
+#ifdef CONFIG_DEVTEROFLEX
+    uint64_t vpn = (value << 16) >> 4;
+    uint64_t asid = (value >> 48);
+
+    devteroflex_mmu_flush_by_va_asid(vpn, asid);
+#endif
+
 }
 
 static void tlbiasid_write(CPUARMState *env, const ARMCPRegInfo *ri,
@@ -787,6 +804,12 @@ static void tlbiasid_write(CPUARMState *env, const ARMCPRegInfo *ri,
     } else {
         tlb_flush(cs);
     }
+
+#ifdef CONFIG_DEVTEROFLEX
+    uint64_t asid = (value >> 48);
+    devteroflex_mmu_flush_by_asid(asid);
+#endif
+
 }
 
 static void tlbimvaa_write(CPUARMState *env, const ARMCPRegInfo *ri,
@@ -801,6 +824,11 @@ static void tlbimvaa_write(CPUARMState *env, const ARMCPRegInfo *ri,
     } else {
         tlb_flush_page(cs, value);
     }
+
+#ifdef CONFIG_DEVTEROFLEX
+    devteroflex_mmu_flush_all();
+#endif
+
 }
 
 static void tlbiall_nsnh_write(CPUARMState *env, const ARMCPRegInfo *ri,
@@ -812,6 +840,10 @@ static void tlbiall_nsnh_write(CPUARMState *env, const ARMCPRegInfo *ri,
                         ARMMMUIdxBit_E10_1 |
                         ARMMMUIdxBit_E10_1_PAN |
                         ARMMMUIdxBit_E10_0);
+
+#ifdef CONFIG_DEVTEROFLEX
+    devteroflex_mmu_flush_all();
+#endif
 }
 
 static void tlbiall_nsnh_is_write(CPUARMState *env, const ARMCPRegInfo *ri,
@@ -823,6 +855,10 @@ static void tlbiall_nsnh_is_write(CPUARMState *env, const ARMCPRegInfo *ri,
                                         ARMMMUIdxBit_E10_1 |
                                         ARMMMUIdxBit_E10_1_PAN |
                                         ARMMMUIdxBit_E10_0);
+
+#ifdef CONFIG_DEVTEROFLEX
+    devteroflex_mmu_flush_all();
+#endif
 }
 
 

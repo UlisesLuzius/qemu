@@ -6,6 +6,7 @@
 #include "qflex/devteroflex/demand-paging.h"
 
 void devteroflex_mmu_flush_by_va_asid(uint64_t va, uint64_t asid) {
+  qemu_log("Flushing Devteroflex TLB: VA: %lx, ASID: %lx \n", va, asid);
   for(int i = 0; i < 3; ++i){
     uint64_t to_evicted = IPT_COMPRESS(va, asid, i);
     if(tpt_lookup(to_evicted)) {
@@ -19,6 +20,7 @@ void devteroflex_mmu_flush_by_va_asid(uint64_t va, uint64_t asid) {
 }
 
 void devteroflex_mmu_flush_by_asid(uint64_t asid) {
+  qemu_log("Flushing Devteroflex TLB: ASID: %lx \n", asid);
   // 1. get all entries in the tpt.
   uint64_t ele = 0;
   uint64_t *keys = tpt_all_keys(&ele);
@@ -125,6 +127,7 @@ void devteroflex_mmu_flush_by_hva(uint64_t hva) {
 
 
 void devteroflex_mmu_flush_all(void) {
+  qemu_log("Flushing Devteroflex TLB: ALL \n");
   // 1. get all entries in the tpt.
   uint64_t ele = 0;
   uint64_t *keys = tpt_all_keys(&ele);

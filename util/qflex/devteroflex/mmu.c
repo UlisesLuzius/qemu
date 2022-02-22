@@ -9,7 +9,7 @@ void devteroflex_mmu_flush_by_va_asid(uint64_t va, uint64_t asid) {
   qemu_log("Flushing Devteroflex TLB: VA: %lx, ASID: %lx \n", va, asid);
   for(int i = 0; i < 3; ++i){
     uint64_t to_evicted = IPT_COMPRESS(va, asid, i);
-    if(tpt_lookup(to_evicted)) {
+    if(tpt_is_entry_exists(to_evicted)) {
         // do simple page eviction.
       page_eviction_request(to_evicted);
       page_eviction_wait_complete(&to_evicted, 1);
@@ -54,15 +54,56 @@ void devteroflex_mmu_flush_by_asid(uint64_t asid) {
   free(keys);
 
   // 4. do flushing.
-
   for(int i = 0; i < number_of_match; i++) {
       page_eviction_request(matched[i]);
+      page_eviction_wait_complete(&matched[i], 1);
   }
-  page_eviction_wait_complete(matched, number_of_match);
 
   free(matched);
 }
 
+void devteroflex_mmu_flush_by_va(uint64_t va) {
+  qemu_log("Flushing Devteroflex TLB: VA: %lx \n", va);
+  // 1. get all entries in the tpt.
+  uint64_t ele = 0;
+  uint64_t *keys = tpt_all_keys(&ele);
+
+  if(ele == 0){
+    return;
+  }
+
+  uint64_t number_of_match = 0;
+  // 2. query the number of matches.
+  for(int i = 0; i < ele; ++i){
+    if(IPT_GET_VA(keys[i]) == va) {
+      number_of_match++;
+    }
+  }
+
+  if(number_of_match == 0){
+    free(keys);
+    return;
+  }
+
+  // 3. allocate memory to keep them.
+  uint64_t *matched = calloc(number_of_match, sizeof(uint64_t));
+  uint64_t matched_key_index = 0;
+  for(int i = 0; i < ele; ++i){
+    if(IPT_GET_VA(keys[i]) == va) {
+      matched[matched_key_index++] = keys[i];
+    }
+  }
+
+  free(keys);
+
+  // 4. do flushing.
+  for(int i = 0; i < number_of_match; i++) {
+      page_eviction_request(matched[i]);
+      page_eviction_wait_complete(&matched[i], 1);
+  }
+  
+  free(matched);
+}
 
 void devteroflex_mmu_flush_by_hva_asid(uint64_t hva, uint64_t asid) {
   // 1. query the IPT.
@@ -100,8 +141,8 @@ void devteroflex_mmu_flush_by_hva_asid(uint64_t hva, uint64_t asid) {
   // 4. do flushing.
   for(int i = 0; i < number_of_match; i++) {
       page_eviction_request(matched[i]);
+      page_eviction_wait_complete(&matched[i], 1);
   }
-  page_eviction_wait_complete(matched, number_of_match);
 
   free(matched);
 }
@@ -119,8 +160,8 @@ void devteroflex_mmu_flush_by_hva(uint64_t hva) {
   // 4. do flushing.
   for(int i = 0; i < ele; i++) {
       page_eviction_request(ipt_synonyms[i]);
+      page_eviction_wait_complete(&ipt_synonyms[i], 1);
   }
-  page_eviction_wait_complete(ipt_synonyms, ele);
 
   free(ipt_synonyms);
 }
@@ -137,10 +178,11 @@ void devteroflex_mmu_flush_all(void) {
   }
   // 4. do flushing.
 
+  // 4. do flushing.
   for(int i = 0; i < ele; i++) {
       page_eviction_request(keys[i]);
+      page_eviction_wait_complete(&keys[i], 1);
   }
-  page_eviction_wait_complete(keys, ele);
 
   free(keys);
 }

@@ -33,6 +33,15 @@ void devteroflex_mmu_flush_by_va_asid(uint64_t va, uint64_t asid);
  */
 void devteroflex_mmu_flush_by_asid(uint64_t asid);
 
+
+/**
+ * @brief Flush all existing translations by VA, for any ASID.
+ * 
+ * @param va the given virtual address
+ * 
+ */
+void devteroflex_mmu_flush_by_va(uint64_t va);
+
 /**
  * @brief Flush translations retrieved by host virtual address (QEMU physical address) and the address space id.
  * 

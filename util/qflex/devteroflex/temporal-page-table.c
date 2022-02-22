@@ -21,6 +21,10 @@ void tpt_init(void) {
   tpt = g_hash_table_new_full(g_int64_hash, g_int64_equal, free, free);
 }
 
+bool tpt_is_entry_exists(uint64_t ipt_bits) {
+  return g_hash_table_lookup(tpt, &ipt_bits) != NULL;
+}
+
 uint64_t tpt_lookup(uint64_t ipt_bits) {
   gpointer lookup_res = g_hash_table_lookup(tpt, &ipt_bits);
   if (lookup_res == NULL) {

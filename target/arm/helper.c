@@ -717,6 +717,10 @@ static void tlbiall_is_write(CPUARMState *env, const ARMCPRegInfo *ri,
     CPUState *cs = env_cpu(env);
 
     tlb_flush_all_cpus_synced(cs);
+
+#ifdef CONFIG_DEVTEROFLEX
+    devteroflex_mmu_flush_all();
+#endif
 }
 
 static void tlbiasid_is_write(CPUARMState *env, const ARMCPRegInfo *ri,
@@ -725,6 +729,11 @@ static void tlbiasid_is_write(CPUARMState *env, const ARMCPRegInfo *ri,
     CPUState *cs = env_cpu(env);
 
     tlb_flush_all_cpus_synced(cs);
+
+#ifdef CONFIG_DEVTEROFLEX
+    uint64_t asid = (value >> 48);
+    devteroflex_mmu_flush_by_asid(asid);
+#endif
 }
 
 static void tlbimva_is_write(CPUARMState *env, const ARMCPRegInfo *ri,
@@ -733,6 +742,13 @@ static void tlbimva_is_write(CPUARMState *env, const ARMCPRegInfo *ri,
     CPUState *cs = env_cpu(env);
 
     tlb_flush_page_all_cpus_synced(cs, value & TARGET_PAGE_MASK);
+
+#ifdef CONFIG_DEVTEROFLEX
+    uint64_t vpn = (value << 16) >> 4;
+    uint64_t asid = (value >> 48);
+
+    devteroflex_mmu_flush_by_va_asid(vpn, asid);
+#endif
 }
 
 static void tlbimvaa_is_write(CPUARMState *env, const ARMCPRegInfo *ri,
@@ -741,6 +757,10 @@ static void tlbimvaa_is_write(CPUARMState *env, const ARMCPRegInfo *ri,
     CPUState *cs = env_cpu(env);
 
     tlb_flush_page_all_cpus_synced(cs, value & TARGET_PAGE_MASK);
+
+#ifdef CONFIG_DEVTEROFLEX
+    devteroflex_mmu_flush_all();
+#endif
 }
 
 /*

@@ -3347,7 +3347,8 @@ if test $devteroflex = "yes" ; then
 fi
 
 if [ $devteroflex_aws_fpga_dir != "NONE" ]; then
-  QEMU_CFLAGS="-DAWS_FPGA -DCONFIG_LOGLEVEL=3 -I$devteroflex_aws_fpga_dir/include -L$devteroflex_aws_fpga_dir/lib $QEMU_CFLAGS"
+  QEMU_CFLAGS="-DAWS_FPGA -DCONFIG_LOGLEVEL=3 -I$devteroflex_aws_fpga_dir/include $QEMU_CFLAGS"
+  QEMU_LDFLAGS="-L$devteroflex_aws_fpga_dir/lib $QEMU_LDFLAGS"
   libdevteroflex="-lfpga_mgmt $libdevteroflex"
 fi
 ##########################################

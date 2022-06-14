@@ -166,4 +166,6 @@ static inline bool debug_cmp_no_mem_sync(void) {
         devteroflexConfig.transplant_type == TRANS_EXCP ||
         devteroflexConfig.transplant_type == TRANS_CLEAR);
 }
+void icount_update_devteroflex(CPUState *cpu, uint64_t executed);
+
 #endif /* DEVTEROFLEX_H */

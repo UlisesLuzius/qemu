@@ -24,6 +24,9 @@ void devteroflex_pack_archstate(DevteroflexArchState *devteroflex, CPUState *cpu
         ((env->NF & (1<<31)) ? 1 << ARCH_PSTATE_NF_MASK : 0) |
         (!(env->ZF)          ? 1 << ARCH_PSTATE_ZF_MASK : 0);
     FLAGS_SET_NZCV(devteroflex->flags, nzcv);
+
+    devteroflex->icount = 0;
+    devteroflex->icountBudget = cpu->icount_budget;
 }
 
 void devteroflex_unpack_archstate(CPUState *cpu, DevteroflexArchState *devteroflex) {
@@ -38,6 +41,8 @@ void devteroflex_unpack_archstate(CPUState *cpu, DevteroflexArchState *devterofl
     env->VF = (nzcv & ARCH_PSTATE_VF_MASK) ? (1 << 31) : 0;
     env->NF = (nzcv & ARCH_PSTATE_NF_MASK) ? (1 << 31) : 0;
     env->ZF = !(nzcv & ARCH_PSTATE_ZF_MASK) ? 1 : 0;
+
+    icount_update_devteroflex(cpu, devteroflex->icount);
 }
 
 bool devteroflex_compare_archstate(CPUState *cpu, DevteroflexArchState *devteroflex) {

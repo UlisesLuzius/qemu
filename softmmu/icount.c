@@ -107,6 +107,19 @@ void icount_update(CPUState *cpu)
                          &timers_state.vm_clock_lock);
 }
 
+#ifdef CONFIG_DEVTEROFLEX
+#include "qflex/devteroflex/devteroflex.h"
+void icount_update_devteroflex(CPUState *cpu, uint64_t executed) {
+    seqlock_write_lock(&timers_state.vm_clock_seqlock,
+                       &timers_state.vm_clock_lock);
+    cpu->icount_budget -= executed;
+    qatomic_set_i64(&timers_state.qemu_icount,
+                    timers_state.qemu_icount + executed);
+    seqlock_write_unlock(&timers_state.vm_clock_seqlock,
+                         &timers_state.vm_clock_lock);
+}
+#endif
+
 static int64_t icount_get_raw_locked(void)
 {
     CPUState *cpu = current_cpu;

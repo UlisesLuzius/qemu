@@ -485,11 +485,6 @@ void cpu_exec_step_atomic(CPUState *cpu)
         }
         assert_no_pages_locked();
         qemu_plugin_disable_mem_helpers(cpu);
-#ifdef CONFIG_DEVTEROFLEX
-        if(gen_verification()) {
-            gen_verification_inst_cancelled();
-        }
-#endif
     }
 
     /*
@@ -961,11 +956,6 @@ int cpu_exec(CPUState *cpu)
         qemu_plugin_disable_mem_helpers(cpu);
 
         assert_no_pages_locked();
-#ifdef CONFIG_DEVTEROFLEX
-        if(gen_verification()) {
-            gen_verification_inst_cancelled();
-        }
-#endif
     }
 
     /* if an exception is pending, we execute it here */

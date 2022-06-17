@@ -22,12 +22,20 @@ typedef enum MemoryAccessType {
 #define MemoryAccessType
 #endif
 
+typedef struct DevteroflexFastForward {
+    bool enabled;
+    bool running;
+    uint64_t icount_target;
+    uint64_t icount_curr;
+} DevteroflexFastForward;
+
 typedef struct DevteroflexConfig {
     bool enabled;
     bool running;
     int debug_mode;
     bool pure_singlestep;
     int transplant_type;
+    DevteroflexFastForward fast_forward;
 } DevteroflexConfig;
 
 typedef enum Transplant_t {
@@ -45,15 +53,24 @@ typedef enum DevteroFlexDebugMode_t {
 } DevteroFlexDebugMode_t;
 
 extern DevteroflexConfig devteroflexConfig;
+extern FPGAContext c;
+extern MessageFPGA message_buffer[256];
+extern uint64_t message_buffer_curr_entry;
+
 
 void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, int debug_mode, bool pure_singlestep);
 
 static inline void devteroflex_start(void) {
     qflex_tb_flush();
     if(devteroflexConfig.enabled){
-        devteroflexConfig.running = true;
-        qemu_log("DEVTEROFLEX: Start detected.\n");
-        qflexState.exit_main_loop = true;
+        if(!devteroflexConfig.fast_forward.enabled) {
+            devteroflexConfig.running = true;
+            qflexState.exit_main_loop = true;
+            qemu_log("DEVTEROFLEX: Start detected.\n");
+        } else {
+            devteroflexConfig.fast_forward.running = true;
+            qemu_log("DEVTEROFLEX: Fast forward: %lu insts\n", devteroflexConfig.fast_forward.icount_target);
+        }
     } else {
         qemu_log("Warning: Devteroflex is not enabled. The DEVTEROFLEX_START instruction is ignored. \n");
         qemu_loglevel |= CPU_LOG_TB_IN_ASM;
@@ -166,6 +183,11 @@ static inline bool debug_cmp_no_mem_sync(void) {
         devteroflexConfig.transplant_type == TRANS_EXCP ||
         devteroflexConfig.transplant_type == TRANS_CLEAR);
 }
-void icount_update_devteroflex(CPUState *cpu, uint64_t executed);
+
+/**
+ * @brief This mirrors `icount_update` but instead of taking the TCG executed, we take Devteroflex counters
+ */
+void icount_update_devteroflex_executed(CPUState *cpu, uint64_t executed);
+void devteroflex_fast_forward_update(uint64_t executed);
 
 #endif /* DEVTEROFLEX_H */

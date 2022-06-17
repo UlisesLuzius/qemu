@@ -42,7 +42,7 @@ void devteroflex_unpack_archstate(CPUState *cpu, DevteroflexArchState *devterofl
     env->NF = (nzcv & ARCH_PSTATE_NF_MASK) ? (1 << 31) : 0;
     env->ZF = !(nzcv & ARCH_PSTATE_ZF_MASK) ? 1 : 0;
 
-    icount_update_devteroflex(cpu, devteroflex->icount);
+    icount_update_devteroflex_executed(cpu, devteroflex->icount);
 }
 
 bool devteroflex_compare_archstate(CPUState *cpu, DevteroflexArchState *devteroflex) {

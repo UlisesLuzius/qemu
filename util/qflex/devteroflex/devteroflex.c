@@ -11,8 +11,10 @@
 
 #include "qflex/devteroflex/devteroflex.h"
 #include "qflex/devteroflex/demand-paging.h"
-#include "qflex/qflex-traces.h"
 #include "qflex/devteroflex/verification.h"
+#include "qflex/devteroflex/devteroflex-mmu.h"
+
+#include "qflex/qflex-traces.h"
 
 #include <glib.h>
 
@@ -23,7 +25,9 @@ DevteroflexConfig devteroflexConfig = {
     .transplant_type = TRANS_CLEAR,
 };
 
-static FPGAContext c;
+FPGAContext c;
+MessageFPGA message_buffer[256] = {0};
+uint64_t message_buffer_curr_entry = 0;
 static DevteroflexArchState state;
 
 // List of cpus in the FPGA
@@ -348,6 +352,7 @@ void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, int de
     devteroflexConfig.debug_mode = debug_mode;
     devteroflexConfig.pure_singlestep = pure_singlestep;
     printf("DevteroFlex settings: enabled[%i]:run[%i]:fpga_phys_pages[%lu]:debug_mode[%i]:pure_singlestep[%i]\n", enabled, run, fpga_physical_pages, debug_mode, pure_singlestep);
+    qemu_log("DevteroFlex settings: enabled[%i]:run[%i]:fpga_phys_pages[%lu]:debug_mode[%i]:pure_singlestep[%i]\n", enabled, run, fpga_physical_pages, debug_mode, pure_singlestep);
 
     if(fpga_physical_pages != -1) {
         if(!pure_singlestep) {
@@ -367,5 +372,16 @@ void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, int de
 
         // In this case, the enable signal must be added.
         assert(devteroflexConfig.enabled && "When the page size is specified, you must enable the devteroflex! by adding `enabled=on` to the command options.");
+    }
+}
+
+void devteroflex_fast_forward_update(uint64_t executed) {
+    if(devteroflexConfig.enabled && devteroflexConfig.fast_forward.enabled && devteroflexConfig.fast_forward.running) {
+        devteroflexConfig.fast_forward.icount_curr += executed;
+        if(devteroflexConfig.fast_forward.icount_curr > devteroflexConfig.fast_forward.icount_target) {
+            qflexState.exit_main_loop = true;
+            devteroflexConfig.fast_forward.running = false;
+            qemu_log("DEVTEROFLEX: Start detected. Executed fast_forward insts: %lu\n", devteroflexConfig.fast_forward.icount_curr);
+        }
     }
 }

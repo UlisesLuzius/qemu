@@ -11,7 +11,6 @@
 
 #ifdef CONFIG_DEVTEROFLEX
 #include "qflex/devteroflex/devteroflex.h"
-#include "qflex/devteroflex/verification.h"
 #include "qflex/devteroflex/demand-paging.h"
 #endif /* CONFIG_DEVTEROFLEX */
 

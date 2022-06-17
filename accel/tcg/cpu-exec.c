@@ -53,8 +53,6 @@
 
 #ifdef CONFIG_DEVTEROFLEX
 #include "qflex/devteroflex/devteroflex.h"
-#include "qflex/devteroflex/verification.h"
-
 #endif
 #endif
 

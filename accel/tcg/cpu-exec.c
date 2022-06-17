@@ -760,11 +760,6 @@ static inline bool cpu_handle_interrupt(CPUState *cpu,
         return true;
     }
 #endif
-    /* TODO: Get rid of non application critical interrupts by instructing the OS
-     * and pinning applications, currently this is a hack that could break functional
-     * correctness if the application itself requires interrupts.
-     * This follow execution path similar tor qemu's internal singlestepping.
-     */
     if (unlikely(qatomic_read(&cpu->interrupt_request))) {
         int interrupt_request;
         qemu_mutex_lock_iothread();

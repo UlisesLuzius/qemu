@@ -12,7 +12,6 @@
 #include "qflex/devteroflex/devteroflex.h"
 #include "qflex/devteroflex/demand-paging.h"
 #include "qflex/qflex-traces.h"
-#include "qflex/devteroflex/verification.h"
 
 #include <glib.h>
 

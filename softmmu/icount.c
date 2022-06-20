@@ -119,6 +119,7 @@ void icount_update_devteroflex_executed(CPUState *cpu, uint64_t executed) {
     seqlock_write_lock(&timers_state.vm_clock_seqlock,
                        &timers_state.vm_clock_lock);
     cpu->icount_budget -= executed;
+    devteroflex_icount_update(executed);
     qatomic_set_i64(&timers_state.qemu_icount,
                     timers_state.qemu_icount + executed);
     seqlock_write_unlock(&timers_state.vm_clock_seqlock,

@@ -96,7 +96,7 @@ static void icount_update_locked(CPUState *cpu)
     qatomic_set_i64(&timers_state.qemu_icount,
                     timers_state.qemu_icount + executed);
 #ifdef CONFIG_DEVTEROFLEX
-    devteroflex_fast_forward_update(executed);
+    devteroflex_icount_update(executed);
 #endif
 }
 

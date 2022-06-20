@@ -35,6 +35,7 @@ typedef struct DevteroflexConfig {
     int debug_mode;
     bool pure_singlestep;
     int transplant_type;
+    uint64_t icount;
     DevteroflexFastForward fast_forward;
 } DevteroflexConfig;
 
@@ -72,7 +73,8 @@ static inline void devteroflex_start(void) {
             qemu_log("DEVTEROFLEX: Fast forward: %lu insts\n", devteroflexConfig.fast_forward.icount_target);
         }
     } else {
-        qemu_log("Warning: Devteroflex is not enabled. The DEVTEROFLEX_START instruction is ignored. \n");
+        qemu_log("Warning: Devteroflex is not enabled. The DEVTEROFLEX_START instruction is ignored. We will still print icount values since start\n");
+        devteroflexConfig.fast_forward.running = true;
         qemu_loglevel |= CPU_LOG_TB_IN_ASM;
         qemu_loglevel |= CPU_LOG_INT;
     }
@@ -184,10 +186,12 @@ static inline bool debug_cmp_no_mem_sync(void) {
         devteroflexConfig.transplant_type == TRANS_CLEAR);
 }
 
+void devteroflex_config_fast_forward(uint64_t target);
+
 /**
  * @brief This mirrors `icount_update` but instead of taking the TCG executed, we take Devteroflex counters
  */
 void icount_update_devteroflex_executed(CPUState *cpu, uint64_t executed);
-void devteroflex_fast_forward_update(uint64_t executed);
+void devteroflex_icount_update(uint64_t executed);
 
 #endif /* DEVTEROFLEX_H */

@@ -1841,16 +1841,16 @@ ERST
 
 #ifdef CONFIG_DEVTEROFLEX
     {
-        .name       = "devteroflex-start",
-        .args_type  = "",
-        .params     = "",
-        .help       = "start devteroflex",
-        .cmd        = hmp_devteroflex_start,
+        .name       = "devteroflex-fast-forward-set",
+        .args_type  = "target:i",
+        .params     = "target",
+        .help       = "set fast forward number of insts",
+        .cmd        = hmp_devteroflex_fast_forward_set,
     },
 
 SRST
-``devteroflex-start``
-  start devteroflex.
+``devteroflex-fast-forward-set`` *target*
+  Set amount of instruction *target* to run after start before binding FPGA.
 ERST
 
     {

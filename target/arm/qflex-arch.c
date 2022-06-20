@@ -77,3 +77,8 @@ void qflex_print_state_asid_tid(CPUState* cs) {
              env->cp15.tpidr_el[0], env->cp15.tpidr_el[1], env->cp15.tpidr_el[2], env->cp15.tpidr_el[3],
              env->cp15.tpidruro_ns, env->cp15.tpidrro_el[0]);
 }
+uint32_t QFLEX_GET_ARCH(nzcv)(CPUState *cs) {
+    CPUARMState *env = cs->env_ptr;
+    uint32_t nzcv = (pstate_read(env) >> 28) & 0xF;
+    return nzcv;
+}

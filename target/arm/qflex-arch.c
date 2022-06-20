@@ -44,7 +44,7 @@ uint64_t QFLEX_GET_ARCH(tid)(CPUState *cs) {
     }
 }
 
-int QFLEX_GET_ARCH(reg)(CPUState *cs, int reg_index) {
+uint64_t QFLEX_GET_ARCH(reg)(CPUState *cs, int reg_index) {
     assert(reg_index < 32);
     return ENV(cs)->xregs[reg_index];
 }

@@ -102,6 +102,8 @@ static void transplantRun(CPUState *cpu, uint32_t thid) {
         devteroflexConfig.transplant_type = TRANS_EXCP;
     } else if (FLAGS_GET_IS_UNDEF(state.flags)) {
         devteroflexConfig.transplant_type = TRANS_UNDEF;
+    } else if (FLAGS_GET_IS_ICOUNT_DEPLETED(state.flags)) {
+        devteroflexConfig.transplant_type = TRANS_ICOUNT;
     } else {
         devteroflexConfig.transplant_type = TRANS_UNKNOWN;
         printf("Unknown reason of transplant");

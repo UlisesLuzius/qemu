@@ -94,9 +94,8 @@ static void transplantRun(CPUState *cpu, uint32_t thid) {
             return; 
         }
         // Need to run normal transplant
-    } else {
-        devteroflex_unpack_archstate(cpu, &state);
     }
+    devteroflex_unpack_archstate(cpu, &state);
 
     if(FLAGS_GET_IS_EXCEPTION(state.flags)) {
         devteroflexConfig.transplant_type = TRANS_EXCP;

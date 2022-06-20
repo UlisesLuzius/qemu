@@ -290,6 +290,7 @@ static int devteroflex_execution_flow(void) {
 static int qflex_singlestep_flow(void) {
     CPUState *cpu;
     printf("Will execute without attaching any DevteroFlex mechanism, only singlestepping\n");
+    qemu_log("Will execute without attaching any DevteroFlex mechanism, only singlestepping\n");
     while(1) {
         CPU_FOREACH(cpu) {
             qflex_singlestep(cpu);
@@ -319,6 +320,14 @@ int devteroflex_singlestepping_flow(void) {
     qemu_log("DEVTEROFLEX:icount[%09lu]:FPGA START\n", devteroflexConfig.icount);
     qflexState.log_inst = true;
     devteroflex_prepare_singlestepping();
+
+    // If started in kernel mode continue until supervised instructions are runned
+    CPUState *cpu;
+    CPU_FOREACH(cpu) {
+        while(QFLEX_GET_ARCH(el)(cpu) != 0){
+            qflex_singlestep(cpu);
+        }
+    }
     if(!devteroflexConfig.pure_singlestep) {
         devteroflex_execution_flow();
     } else {

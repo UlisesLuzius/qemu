@@ -102,6 +102,8 @@ static void transplantRun(CPUState *cpu, uint32_t thid) {
         devteroflexConfig.transplant_type = TRANS_EXCP;
     } else if (FLAGS_GET_IS_UNDEF(state.flags)) {
         devteroflexConfig.transplant_type = TRANS_UNDEF;
+    } else if (FLAGS_GET_IS_ICOUNT_DEPLETED(state.flags)) {
+        devteroflexConfig.transplant_type = TRANS_ICOUNT;
     } else {
         devteroflexConfig.transplant_type = TRANS_UNKNOWN;
         printf("Unknown reason of transplant");
@@ -315,7 +317,7 @@ static void devteroflex_prepare_singlestepping(void) {
 }
 
 int devteroflex_singlestepping_flow(void) {
-    qemu_log("DEVTEROFLEX: FPGA START\n");
+    qemu_log("DEVTEROFLEX:icount[%09lu]:FPGA START\n", devteroflexConfig.icount);
     qflexState.log_inst = true;
     devteroflex_prepare_singlestepping();
     if(!devteroflexConfig.pure_singlestep) {
@@ -323,7 +325,7 @@ int devteroflex_singlestepping_flow(void) {
     } else {
         qflex_singlestep_flow();
     }
-    qemu_log("DEVTEROFLEX: FPGA EXIT\n");
+    qemu_log("DEVTEROFLEX:icount[%09lu]:FPGA EXIT\n", devteroflexConfig.icount);
     qflexState.log_inst = false;
     devteroflex_stop_full();
     return 0;
@@ -338,7 +340,7 @@ void devteroflex_stop_full(void) {
     }
     qemu_loglevel &= ~CPU_LOG_TB_IN_ASM;
     qemu_loglevel &= ~CPU_LOG_INT;
-    qemu_log("DEVTEROFLEX: Stopped fully\n");
+    qemu_log("DEVTEROFLEX:icount[%09lu]:STOP FULL\n", devteroflexConfig.icount);
 
     // TODO: When to close FPGA and stop generating helper memory?
     //releaseFPGAContext(&c);
@@ -370,5 +372,13 @@ void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, int de
 
         // In this case, the enable signal must be added.
         assert(devteroflexConfig.enabled && "When the page size is specified, you must enable the devteroflex! by adding `enabled=on` to the command options.");
+    }
+}
+
+void devteroflex_icount_update(uint64_t executed) {
+    // Fast forward management
+    if(devteroflexConfig.enabled && devteroflexConfig.running) {
+        qemu_log("Devteroflex:icount:exec[%09lu]\n", devteroflexConfig.icount);
+        devteroflexConfig.icount += executed;
     }
 }

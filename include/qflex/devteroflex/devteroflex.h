@@ -22,6 +22,13 @@ typedef enum MemoryAccessType {
 #define MemoryAccessType
 #endif
 
+typedef struct DevteroflexFastForward {
+    bool enabled;
+    bool running;
+    uint64_t icount_target;
+    uint64_t icount_curr;
+} DevteroflexFastForward;
+
 typedef struct DevteroflexConfig {
     bool enabled;
     bool running;
@@ -29,6 +36,7 @@ typedef struct DevteroflexConfig {
     bool pure_singlestep;
     int transplant_type;
     uint64_t icount;
+    DevteroflexFastForward fast_forward;
 } DevteroflexConfig;
 
 typedef enum Transplant_t {
@@ -57,11 +65,17 @@ void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, int de
 static inline void devteroflex_start(void) {
     qflex_tb_flush();
     if(devteroflexConfig.enabled){
-        devteroflexConfig.running = true;
-        qemu_log("DEVTEROFLEX: Start detected.\n");
-        qflexState.exit_main_loop = true;
+        if(!devteroflexConfig.fast_forward.enabled) {
+            devteroflexConfig.running = true;
+            qflexState.exit_main_loop = true;
+            qemu_log("DEVTEROFLEX: Start detected.\n");
+        } else {
+            devteroflexConfig.fast_forward.running = true;
+            qemu_log("DEVTEROFLEX: Fast forward: %lu insts\n", devteroflexConfig.fast_forward.icount_target);
+        }
     } else {
-        qemu_log("Warning: Devteroflex is not enabled. The DEVTEROFLEX_START instruction is ignored. \n");
+        qemu_log("Warning: Devteroflex is not enabled. The DEVTEROFLEX_START instruction is ignored. We will still print icount values since start\n");
+        devteroflexConfig.fast_forward.running = true;
         qemu_loglevel |= CPU_LOG_TB_IN_ASM;
         qemu_loglevel |= CPU_LOG_INT;
     }
@@ -175,6 +189,9 @@ static inline bool debug_cmp_no_mem_sync(void) {
         devteroflexConfig.transplant_type == TRANS_ICOUNT ||
         devteroflexConfig.transplant_type == TRANS_CLEAR);
 }
+
+void devteroflex_config_fast_forward(uint64_t target);
+
 /**
  * @brief This mirrors `icount_update` but instead of taking the TCG executed, we take Devteroflex counters
  */

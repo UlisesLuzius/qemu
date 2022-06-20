@@ -291,6 +291,7 @@ static int devteroflex_execution_flow(void) {
 static int qflex_singlestep_flow(void) {
     CPUState *cpu;
     printf("Will execute without attaching any DevteroFlex mechanism, only singlestepping\n");
+    qemu_log("Will execute without attaching any DevteroFlex mechanism, only singlestepping\n");
     while(1) {
         CPU_FOREACH(cpu) {
             qflex_singlestep(cpu);
@@ -320,6 +321,14 @@ int devteroflex_singlestepping_flow(void) {
     qemu_log("DEVTEROFLEX:icount[%09lu]:FPGA START\n", devteroflexConfig.icount);
     qflexState.log_inst = true;
     devteroflex_prepare_singlestepping();
+
+    // If started in kernel mode continue until supervised instructions are runned
+    CPUState *cpu;
+    CPU_FOREACH(cpu) {
+        while(QFLEX_GET_ARCH(el)(cpu) != 0){
+            qflex_singlestep(cpu);
+        }
+    }
     if(!devteroflexConfig.pure_singlestep) {
         devteroflex_execution_flow();
     } else {
@@ -353,6 +362,7 @@ void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, int de
     devteroflexConfig.debug_mode = debug_mode;
     devteroflexConfig.pure_singlestep = pure_singlestep;
     printf("DevteroFlex settings: enabled[%i]:run[%i]:fpga_phys_pages[%lu]:debug_mode[%i]:pure_singlestep[%i]\n", enabled, run, fpga_physical_pages, debug_mode, pure_singlestep);
+    qemu_log("DevteroFlex settings: enabled[%i]:run[%i]:fpga_phys_pages[%lu]:debug_mode[%i]:pure_singlestep[%i]\n", enabled, run, fpga_physical_pages, debug_mode, pure_singlestep);
 
     if(fpga_physical_pages != -1) {
         if(!pure_singlestep) {
@@ -375,10 +385,37 @@ void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, int de
     }
 }
 
+void devteroflex_config_fast_forward(uint64_t target) {
+    printf("Will fast forward till target: %lu\n", target);
+    devteroflexConfig.fast_forward.enabled = true;;
+    devteroflexConfig.fast_forward.running = false;
+    devteroflexConfig.fast_forward.icount_target = target;
+    devteroflexConfig.fast_forward.icount_curr = 0;
+}
+
 void devteroflex_icount_update(uint64_t executed) {
     // Fast forward management
-    if(devteroflexConfig.enabled && devteroflexConfig.running) {
-        qemu_log("Devteroflex:icount:exec[%09lu]\n", devteroflexConfig.icount);
+    if(devteroflexConfig.enabled) {
+        assert(!(devteroflexConfig.running && (devteroflexConfig.fast_forward.enabled && devteroflexConfig.fast_forward.running)));
+        if(devteroflexConfig.fast_forward.enabled && devteroflexConfig.fast_forward.running) {
+            qemu_log("Devteroflex:fast_forward:exec[%09lu]\n", devteroflexConfig.fast_forward.icount_curr);
+            devteroflexConfig.icount += executed;
+            devteroflexConfig.fast_forward.icount_curr += executed;
+            if(devteroflexConfig.fast_forward.icount_curr > devteroflexConfig.fast_forward.icount_target) {
+                qflex_tb_flush();
+                devteroflexConfig.fast_forward.running = false;
+                devteroflexConfig.fast_forward.enabled = false;
+                devteroflexConfig.running = true;
+                qflexState.exit_main_loop = true;
+                qemu_log("DEVTEROFLEX:fast_forward:done[%010lu]:target[%010lu]\n", devteroflexConfig.fast_forward.icount_curr, devteroflexConfig.fast_forward.icount_target);
+            }
+        } else if (devteroflexConfig.running) {
+            qemu_log("Devteroflex:icount:exec[%09lu]\n", devteroflexConfig.icount);
+            devteroflexConfig.icount += executed;
+        }
+    } else if (!devteroflexConfig.enabled && devteroflexConfig.fast_forward.running) {
+        // Counting when running with normal icount but no DevteroFlex attached
+        qemu_log("Devteroflex:icount:exec[%09lu]:no devteroflex\n", devteroflexConfig.icount);
         devteroflexConfig.icount += executed;
     }
 }

@@ -15,6 +15,8 @@
 
 #include "qflex/qflex-traces.h"
 
+#include "rust-aux.h"
+
 #include <glib.h>
 
 DevteroflexConfig devteroflexConfig = { 
@@ -422,6 +424,9 @@ void devteroflex_init(bool enabled, bool run, size_t fpga_physical_pages, int de
         tpt_init();
         // Initialize the shadow page table
         spt_init();
+
+        // Initialize the rust library
+        rust_aux_init();
 
         // In this case, the enable signal must be added.
         assert(devteroflexConfig.enabled && "When the page size is specified, you must enable the devteroflex! by adding `enabled=on` to the command options.");

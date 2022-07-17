@@ -1,10 +1,6 @@
 devteroflex_ss.add([files(
   'file-ops.c',
   'demand-paging.c',
-  'inverted-page-table.c',
-  'temporal-page-table.c',
-  'shadow-page-table.c',
-  'physical-addr-manager.c',
   'mmu.c',
   'custom-instrumentation.c',
   'devteroflex.c',

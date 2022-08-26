@@ -17,6 +17,8 @@
 #include "qemu/option_int.h"
 #include "qemu/main-loop.h"
 
+#include "sysemu/cpus.h"
+
 #include "exec/log.h"
 #include "qflex/qflex.h"
 #include "qflex/qflex-traces.h"
@@ -47,7 +49,15 @@ static int qflex_singlestep_with_retry(CPUState *cpu, bool retry) {
         QFLEX_GET_ARCH(log_inst)(cpu);
     }
 
+    if(cpu_thread_is_idle(cpu)) {
+        return ret;
+    }
+   
     ret = qflex_cpu_step(cpu);
+
+    if(cpu_thread_is_idle(cpu)) {
+        return ret;
+    }
 
     pc_ss_after = QFLEX_GET_ARCH(pc)(cpu);
     if(pc_ss == pc_ss_after) {

@@ -5,6 +5,7 @@
 #include "qemu/osdep.h"
 #include "qemu/thread.h"
 #include "hw/core/cpu.h"
+#include "sysemu/cpus.h"
 
 #include "qflex/qflex.h"
 #include "qflex/qflex-arch.h"
@@ -32,10 +33,12 @@ uint64_t message_buffer_curr_entry = 0;
 static DevteroflexArchState state;
 
 // List of cpus in the FPGA
-static uint32_t running_cpus;
-#define cpu_in_fpga(cpu) (running_cpus & 1 << cpu)
-#define cpu_push_fpga(cpu) (running_cpus |= 1 << cpu)
-#define cpu_pull_fpga(cpu) (running_cpus &= ~(1 << cpu))
+static uint32_t cpus_running = 0;
+static uint32_t cpus_halted = 0;
+
+#define bitmap_has_idx(bitmap, idx) (bitmap & 1 << idx)
+#define bitmap_set_idx(bitmap, idx) (bitmap |= 1 << idx)
+#define bitmap_unset_idx(bitmap, idx) (bitmap &= ~(1 << idx))
 
 void checkAsserts(int region) {
     uint32_t assertsRaised = assertFailedGet(&c, 0);
@@ -43,6 +46,18 @@ void checkAsserts(int region) {
         qemu_log("Region:%i:assertions failed: %x\n", region, assertsRaised);
         printf("Region:%i:assertions failed: %x\n", region, assertsRaised);
         abort();
+    }
+}
+
+static void transplantPushCpu(CPUState *cpu) {
+    bitmap_set_idx(cpus_running, cpu->cpu_index);
+    devteroflex_pack_archstate(&state, cpu);
+    state.icountExecuted = 0; // Reset executed flag
+
+    if(devteroflexConfig.debug_mode) {
+        transplantPushAndSinglestep(&c, cpu->cpu_index, &state);
+    } else {
+        transplantPushAndStart(&c, cpu->cpu_index, &state);
     }
 }
 
@@ -66,14 +81,28 @@ static bool run_debug(CPUState *cpu) {
     uint64_t pc_before_singlestep = QFLEX_GET_ARCH(pc)(cpu);
     uint64_t asid_before_singlestep = QFLEX_GET_ARCH(asid)(cpu);
     qflex_singlestep(cpu);
+    if(cpu_thread_is_idle(cpu)) {
+        bitmap_set_idx(cpus_halted, cpu->cpu_index);
+        return true;
+    }
+
     // continue until supervised instructions are runned.
     while(QFLEX_GET_ARCH(el)(cpu) != 0){
         qflex_singlestep(cpu);
+        if(cpu_thread_is_idle(cpu)) {
+            bitmap_set_idx(cpus_halted, cpu->cpu_index);
+            return true;
+        }
         if(QFLEX_GET_ARCH(pc)(cpu) == pc_before_singlestep) {
             // Rexecute instruction after IRQ
             qflex_singlestep(cpu);
+            if(cpu_thread_is_idle(cpu)) {
+                bitmap_set_idx(cpus_halted, cpu->cpu_index);
+                return true;
+            }
         }
     }
+
     uint32_t asid_after_singlestep = QFLEX_GET_ARCH(asid)(cpu);
 
     if(asid_before_singlestep != asid_after_singlestep) {
@@ -99,11 +128,7 @@ static bool run_debug(CPUState *cpu) {
     }
 
     if(devteroflexConfig.enabled && devteroflexConfig.running) {
-        // transplantPending(&c, &pending);
-        cpu_push_fpga(cpu->cpu_index);
-        state.icountExecuted = 0; // Reset executed flag
-        // transplantPushAndStart(&c, cpu->cpu_index, &state);
-        transplantPushAndSinglestep(&c, cpu->cpu_index, &state);
+        transplantPushCpu(cpu);
     }
     // End of debug mode
     return true;
@@ -111,8 +136,8 @@ static bool run_debug(CPUState *cpu) {
 
 static void transplantRun(CPUState *cpu, uint32_t thid) {
     assert(cpu->cpu_index == thid);
-    assert(cpu_in_fpga(thid));
-    cpu_pull_fpga(cpu->cpu_index);
+    assert(bitmap_has_idx(cpus_running, thid));
+    bitmap_unset_idx(cpus_running, cpu->cpu_index);
     transplantGetState(&c, thid, &state);
     transplantFreePending(&c, (1 << thid));
 
@@ -139,6 +164,8 @@ static void transplantRun(CPUState *cpu, uint32_t thid) {
         devteroflexConfig.transplant_type = TRANS_ICOUNT;
         qemu_log("DevteroFlex:DEBUG:icount depleted detected\n");
         qemu_log("     - Should be true:%i\n", (state.icountExecuted == state.icountBudget));
+    } else if (cpu_thread_is_idle(cpu)) {
+        devteroflexConfig.transplant_type = TRANS_HALTED;
     } else {
         devteroflexConfig.transplant_type = TRANS_UNKNOWN;
         printf("Unknown reason of transplant");
@@ -149,13 +176,28 @@ static void transplantRun(CPUState *cpu, uint32_t thid) {
     uint64_t pc_before_singlestep = QFLEX_GET_ARCH(pc)(cpu);
     uint64_t asid_before_singlestep = QFLEX_GET_ARCH(asid)(cpu);
     qflex_singlestep(cpu);
+    if(cpu_thread_is_idle(cpu)) {  
+        bitmap_set_idx(cpus_halted, cpu->cpu_index);
+        return;
+    }
+
     // continue until supervised instructions are runned.
     while(QFLEX_GET_ARCH(el)(cpu) != 0){
         qflex_singlestep(cpu);
+        if(cpu_thread_is_idle(cpu)) {  
+            bitmap_set_idx(cpus_halted, cpu->cpu_index);
+            return;
+        }
         if(QFLEX_GET_ARCH(pc)(cpu) == pc_before_singlestep) {
             qflex_singlestep(cpu);
+            if(cpu_thread_is_idle(cpu)) {  
+                bitmap_set_idx(cpus_halted, cpu->cpu_index);
+                return;
+            }
         }
     }
+
+
     uint64_t asid_after_singlestep = QFLEX_GET_ARCH(asid)(cpu);
     if(asid_before_singlestep != asid_after_singlestep) {
         printf("WARNING:DevteroFlex:Transplant:Something in the execution changed the ASID\n");
@@ -164,15 +206,7 @@ static void transplantRun(CPUState *cpu, uint32_t thid) {
 
     // handle exception will change the state, so it
     if(devteroflexConfig.enabled && devteroflexConfig.running) {
-        cpu_push_fpga(cpu->cpu_index);
-        devteroflex_pack_archstate(&state, cpu);
-
-        if(devteroflexConfig.debug_mode) {
-            // Ensure single instruction gets executed
-            transplantPushAndSinglestep(&c, thid, &state);
-        } else {
-            transplantPushAndStart(&c, thid, &state);
-        }
+        transplantPushCpu(cpu);
     }
 
 }
@@ -184,6 +218,9 @@ static void transplantsRun(uint32_t pending) {
         if(pending & (1 << cpu->cpu_index)) {
             transplantRun(cpu, cpu->cpu_index);
             devteroflexConfig.transplant_type = TRANS_CLEAR;
+            if(bitmap_has_idx(cpus_halted, cpu->cpu_index)) {
+                qemu_log("CPU[%i]:STOPPED[HALTED]\n", cpu->cpu_index);
+            }
         }
     }
 }
@@ -211,7 +248,7 @@ static void transplantBringBack(uint32_t pending) {
             } else {
                 devteroflex_unpack_archstate(cpu, &state);
             }
-            cpu_pull_fpga(thid);
+            bitmap_unset_idx(cpus_running, thid);
         }
     }
 }
@@ -219,13 +256,8 @@ static void transplantBringBack(uint32_t pending) {
 static void transplantPushAllCpus(void) {
     CPUState *cpu;
     CPU_FOREACH(cpu) {
-        cpu_push_fpga(cpu->cpu_index);
-        devteroflex_pack_archstate(&state, cpu);
-
-        if(devteroflexConfig.debug_mode) {
-            transplantPushAndSinglestep(&c, cpu->cpu_index, &state);
-        } else {
-            transplantPushAndStart(&c, cpu->cpu_index, &state);
+        if(!cpu_thread_is_idle(cpu)) {
+            transplantPushCpu(cpu);
         }
     }
 }
@@ -274,6 +306,33 @@ static void printPMUCounters(const FPGAContext *ctx){
   }
 }
 
+static void runHaltedCpus(void) {
+    if(cpus_halted == 0) return;
+
+    CPUState *cpu;
+    CPU_FOREACH(cpu) {
+        if(bitmap_has_idx(cpus_halted, cpu->cpu_index)) {
+            if (!cpu_thread_is_idle(cpu)) {
+                devteroflexConfig.transplant_type = TRANS_UNDEF;
+                qemu_log("CPU[%i]:RESTART[NO HALTED]\n", cpu->cpu_index);
+                bitmap_unset_idx(cpus_halted, cpu->cpu_index);
+                while(QFLEX_GET_ARCH(el)(cpu) != 0) {
+                    qflex_singlestep(cpu);
+                    if(cpu_thread_is_idle(cpu)) {
+                        bitmap_set_idx(cpus_halted, cpu->cpu_index);
+                        qemu_log("CPU[%i]:STOPPED[HALTED]\n", cpu->cpu_index);
+                        break;
+                    }
+                }
+                devteroflexConfig.transplant_type = TRANS_CLEAR;
+                if(!cpu_thread_is_idle(cpu)) {
+                    transplantPushCpu(cpu);
+                }
+            }
+        }
+    }
+}
+
 // Functions that control QEMU execution flow
 static int devteroflex_execution_flow(void) {
     MessageFPGA msg;
@@ -292,6 +351,9 @@ static int devteroflex_execution_flow(void) {
                 transplantBringBack(pending);
             }
         }
+
+        runHaltedCpus();
+
         // Run all pending messages from a synchronization
         if(message_buffer_curr_entry > 0) {
             for(int message_idx = 0; message_idx < message_buffer_curr_entry; message_idx++) {
@@ -311,12 +373,12 @@ static int devteroflex_execution_flow(void) {
         // If DevteroFlex stopped executing, pull all cpu's back
         if(!(devteroflexConfig.enabled && devteroflexConfig.running)) {
             CPU_FOREACH(cpu) {
-                if(!cpu_in_fpga(cpu->cpu_index)) {
+                if(!bitmap_has_idx(cpus_running, cpu->cpu_index)) {
                     transplantStopCPU(&c, cpu->cpu_index);
                 }
             }
         }
-        if(!(devteroflexConfig.enabled && devteroflexConfig.running) && running_cpus == 0) {
+        if(!(devteroflexConfig.enabled && devteroflexConfig.running) && cpus_running == 0) {
             // Done executing
             break;
         }
@@ -335,7 +397,18 @@ static int qflex_singlestep_flow(void) {
     qemu_log("Will execute without attaching any DevteroFlex mechanism, only singlestepping\n");
     while(1) {
         CPU_FOREACH(cpu) {
-            qflex_singlestep(cpu);
+            if(cpu_thread_is_idle(cpu)) {
+                if(!bitmap_has_idx(cpus_halted, cpu->cpu_index)) {
+                    qemu_log("CPU[%i]:STOPPED[HALTED]\n", cpu->cpu_index);
+                    bitmap_set_idx(cpus_halted, cpu->cpu_index);
+                }
+            } else {
+                if(bitmap_has_idx(cpus_halted, cpu->cpu_index)) {
+                    qemu_log("CPU[%i]:RESTART[NO HALTED]\n", cpu->cpu_index);
+                    bitmap_unset_idx(cpus_halted, cpu->cpu_index);
+                }
+                qflex_singlestep(cpu);
+            }
         }
         if(!(devteroflexConfig.enabled && devteroflexConfig.running)) {
             break;
@@ -358,6 +431,7 @@ static void devteroflex_prepare_singlestepping(void) {
     }
 }
 
+uint32_t done_forward = 0;
 int devteroflex_singlestepping_flow(void) {
     qemu_log("DEVTEROFLEX:icount[%09lu]:FPGA START\n", devteroflexConfig.icount);
     qflexState.log_inst = true;
@@ -366,10 +440,19 @@ int devteroflex_singlestepping_flow(void) {
     // If started in kernel mode continue until supervised instructions are runned
     CPUState *cpu;
     CPU_FOREACH(cpu) {
-        while(QFLEX_GET_ARCH(el)(cpu) != 0){
-            qflex_singlestep(cpu);
+        qemu_log("CPU[%i]:START[NO HALTED]\n", cpu->cpu_index);
+        while(QFLEX_GET_ARCH(el)(cpu) != 0) {
+            if(cpu_thread_is_idle(cpu)){
+                qemu_log("CPU[%i]:STOPPED[HALTED]\n", cpu->cpu_index);
+                bitmap_set_idx(cpus_halted, cpu->cpu_index);
+                break;
+            } else {
+                bitmap_unset_idx(cpus_halted, cpu->cpu_index);
+                qflex_singlestep(cpu);
+            }
         }
     }
+
     if(!devteroflexConfig.pure_singlestep) {
         devteroflex_execution_flow();
     } else {

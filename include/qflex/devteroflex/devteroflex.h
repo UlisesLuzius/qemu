@@ -45,6 +45,7 @@ typedef enum Transplant_t {
     TRANS_UNDEF = 2,
     TRANS_DEBUG = 3,
     TRANS_ICOUNT = 4,
+    TRANS_HALTED = 5,
     TRANS_UNKNOWN
 } Transplant_t;
 

@@ -2239,3 +2239,14 @@ static void arm_cpu_register_types(void)
 }
 
 type_init(arm_cpu_register_types)
+
+
+#ifdef CONFIG_QFLEX
+#include "qflex-helper.h"
+bool get_arm_excp_unmasked(CPUState *cs, unsigned int excp_idx,
+                                     unsigned int target_el,
+                                     unsigned int cur_el, bool secure,
+                                     uint64_t hcr_el2) {
+    return arm_excp_unmasked(cs, excp_idx, target_el, cur_el, secure, hcr_el2);
+}
+#endif /* CONFIG_QFLEX */

@@ -43,7 +43,7 @@ static int qflex_singlestep_with_retry(CPUState *cpu, bool retry) {
 
     if(qflexState.log_inst) {
         qemu_log("CPU[%i]:ASID[%x]:", cpu->cpu_index, asid); 
-        QFLEX_RD_ARCH(log_inst)(cpu);
+        QFLEX_DO_ARCH(log_inst)(cpu);
     }
 
     ret = qflex_cpu_step(cpu);

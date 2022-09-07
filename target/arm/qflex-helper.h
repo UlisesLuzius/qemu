@@ -23,4 +23,10 @@ uint64_t QFLEX_GET_ARCH(asid_reg)(CPUState *cs);
 uint64_t gva_to_hva_arch(CPUState *cs, uint64_t vaddr, MMUAccessType access_type);
 uint64_t gva_to_hva_arch_with_asid(CPUState *cs, uint64_t vaddr, MMUAccessType access_type, uint64_t asid_reg);
 
+
+bool get_arm_excp_unmasked(CPUState *cs, unsigned int excp_idx,
+                                     unsigned int target_el,
+                                     unsigned int cur_el, bool secure,
+                                     uint64_t hcr_el2);
+ 
 #endif /* QFLEX_HELPER_H */

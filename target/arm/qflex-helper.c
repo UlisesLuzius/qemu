@@ -44,7 +44,7 @@ static inline void qflex_mem_trace_cmds(CPUState *cs, uint64_t nop_op) {
     switch(nop_op) {
         case MEM_TRACE_START:   qflex_mem_trace_start(-1, QFLEX_GEN_TRACE_MEDIUM); break;
         case MEM_TRACE_STOP:    qflex_mem_trace_stop();       break;
-        case MEM_TRACE_START_INST: qflex_mem_trace_start(QFLEX_GET_ARCH(reg)(cs, 0), QFLEX_GEN_TRACE_TINY_INST); break;
+        case MEM_TRACE_START_INST: qflex_mem_trace_start(QFLEX_RD_ARCH(reg)(cs, 0), QFLEX_GEN_TRACE_TINY_INST); break;
         case MEM_TRACE_RESULTS: qflex_mem_trace_log_direct(); break;
     }
 }
@@ -135,19 +135,19 @@ void HELPER(qflex_pre_mem)(CPUARMState* env, uint64_t addr, uint32_t type, uint3
                 inst = *(uint32_t *) paddr;
                 QflexInstTraceFull_t trace = {
                     .cpu_index = cs->cpu_index, 
-                    .asid = QFLEX_GET_ARCH(asid)(cs), 
-                    .tid = QFLEX_GET_ARCH(tid)(cs), 
+                    .asid = QFLEX_RD_ARCH(asid)(cs), 
+                    .tid = QFLEX_RD_ARCH(tid)(cs), 
                     .pc = addr, 
                     .inst = inst
                 };
                 QflexInstTraceMedium_t traceMed = {
-                    .asid = QFLEX_GET_ARCH(asid)(cs),
-                    .el = QFLEX_GET_ARCH(el)(cs),
+                    .asid = QFLEX_RD_ARCH(asid)(cs),
+                    .el = QFLEX_RD_ARCH(el)(cs),
                     .tid = env->cp15.tpidrurw_ns,
                     .tid2 = env->cp15.tpidrurw_ns
                 };
                 switch(qflexTraceState.gen_inst_trace_type) {
-                    case QFLEX_GEN_TRACE_TINY_INST:     qflex_inst_trace(cs->cpu_index, QFLEX_GET_ARCH(asid)(cs), inst); break;
+                    case QFLEX_GEN_TRACE_TINY_INST:     qflex_inst_trace(cs->cpu_index, QFLEX_RD_ARCH(asid)(cs), inst); break;
                     case QFLEX_GEN_TRACE_MEDIUM:      qflex_inst_trace_medium(cs->cpu_index, &traceMed); break;
                     case QFLEX_GEN_TRACE_FULL_INST:  qflex_inst_trace_full(&trace);  break;
                 }

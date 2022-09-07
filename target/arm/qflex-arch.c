@@ -8,6 +8,8 @@
 
 /* qflex/qflex-arch.h
  */
+#define ENV(cpu) ((CPUARMState *) cpu->env_ptr)
+
 uint64_t QFLEX_GET_ARCH(pc)(CPUState *cs) { return ENV(cs)->pc; }
 int      QFLEX_GET_ARCH(el)(CPUState *cs) { return arm_current_el(ENV(cs)); }
 
@@ -17,7 +19,7 @@ int      QFLEX_GET_ARCH(el)(CPUState *cs) { return arm_current_el(ENV(cs)); }
  * BADDR: bits [47:1]
  * CnP:   bit  [0]
  */
-uint64_t QFLEX_GET_ARCH(asid)(CPUState *cs) {
+uint64_t QFLEX_RD_ARCH(asid)(CPUState *cs) {
     if (false /* TODO: when do we need ttbr1 ? */) {
         return ENV(cs)->cp15.ttbr0_ns >> 48;
     } else {
@@ -25,7 +27,7 @@ uint64_t QFLEX_GET_ARCH(asid)(CPUState *cs) {
     }
 }
 
-uint64_t QFLEX_GET_ARCH(asid_reg)(CPUState *cs) {
+uint64_t QFLEX_RD_ARCH(asid_reg)(CPUState *cs) {
     if (false /* TODO: when do we need ttbr1 ? */) {
         return ENV(cs)->cp15.ttbr0_ns;
     } else {
@@ -33,7 +35,7 @@ uint64_t QFLEX_GET_ARCH(asid_reg)(CPUState *cs) {
     }
 }
 
-uint64_t QFLEX_GET_ARCH(tid)(CPUState *cs) {
+uint64_t QFLEX_RD_ARCH(tid)(CPUState *cs) {
     int curr_el = arm_current_el(ENV(cs));
     if(curr_el == 0) {
         return ENV(cs)->cp15.tpidrurw_ns;
@@ -42,15 +44,15 @@ uint64_t QFLEX_GET_ARCH(tid)(CPUState *cs) {
     }
 }
 
-uint64_t QFLEX_GET_ARCH(reg)(CPUState *cs, int reg_index) {
+uint64_t QFLEX_RD_ARCH(reg)(CPUState *cs, int reg_index) {
     assert(reg_index < 32);
     return ENV(cs)->xregs[reg_index];
 }
 
-void QFLEX_GET_ARCH(log_inst)(CPUState *cs) {
+void QFLEX_RD_ARCH(log_inst)(CPUState *cs) {
     FILE *logfile = qemu_log_trylock();
     if (logfile) {
-        target_disas(logfile, cs, QFLEX_GET_ARCH(pc)(cs), 4);
+        target_disas(logfile, cs, QFLEX_RD_ARCH(pc)(cs), 4);
         qemu_log_unlock(logfile);
     } else {
         printf("Error: logfile busy can't print");
@@ -78,13 +80,13 @@ void qflex_print_state_asid_tid(CPUState* cs) {
 }
 
 void qflex_dump_archstate_log(CPUState *cpu) {
-    qemu_log("ASID[0x%08lx]:PC[0x%016lx]\n", QFLEX_GET_ARCH(asid)(cpu), QFLEX_GET_ARCH(pc)(cpu));
+    qemu_log("ASID[0x%08lx]:PC[0x%016lx]\n", QFLEX_RD_ARCH(asid)(cpu), QFLEX_RD_ARCH(pc)(cpu));
     for (int reg = 0; reg < 32; reg++) {
-        qemu_log("X%02i[%016lx]\n", reg, QFLEX_GET_ARCH(reg)(cpu, reg));
+        qemu_log("X%02i[%016lx]\n", reg, QFLEX_RD_ARCH(reg)(cpu, reg));
     }
 }
 
-uint32_t QFLEX_GET_ARCH(nzcv)(CPUState *cs) {
+uint32_t QFLEX_RD_ARCH(nzcv)(CPUState *cs) {
     CPUARMState *env = cs->env_ptr;
     uint32_t nzcv = (pstate_read(env) >> 28) & 0xF;
     return nzcv;

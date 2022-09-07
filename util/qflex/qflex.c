@@ -37,18 +37,18 @@ QflexState_t qflexState = {
 
 static int qflex_singlestep_with_retry(CPUState *cpu, bool retry) {
     int ret = 0;
-    uint64_t pc_ss = QFLEX_GET_ARCH(pc)(cpu);
-    uint32_t asid = QFLEX_GET_ARCH(asid)(cpu);
+    uint64_t pc_ss = QFLEX_RD_ARCH(pc)(cpu);
+    uint32_t asid = QFLEX_RD_ARCH(asid)(cpu);
     uint64_t pc_ss_after;
 
     if(qflexState.log_inst) {
         qemu_log("CPU[%i]:ASID[%x]:", cpu->cpu_index, asid); 
-        QFLEX_GET_ARCH(log_inst)(cpu);
+        QFLEX_RD_ARCH(log_inst)(cpu);
     }
 
     ret = qflex_cpu_step(cpu);
 
-    pc_ss_after = QFLEX_GET_ARCH(pc)(cpu);
+    pc_ss_after = QFLEX_RD_ARCH(pc)(cpu);
     if(pc_ss == pc_ss_after) {
         if(retry) {
             printf("QFlex singlestep went wrong twice in a row: ret = %x\n", ret);

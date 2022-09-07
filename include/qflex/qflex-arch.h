@@ -9,14 +9,16 @@
  */
 
 // functions define to get CPUArchState specific values
-#define QFLEX_GET_ARCH(name) glue(qflex_get_arch_, name)
+#define QFLEX_RD_ARCH(name) glue(QFLEX_RD_ARCH_, name)
 
 uint64_t QFLEX_GET_ARCH(pc)(CPUState *cs);
-int      QFLEX_GET_ARCH(el)(CPUState *cs);
 uint64_t QFLEX_GET_ARCH(asid)(CPUState *cs);
+uint64_t QFLEX_GET_ARCH(asid_reg)(CPUState *cs);
 uint64_t QFLEX_GET_ARCH(tid)(CPUState *cs);
+int      QFLEX_GET_ARCH(el)(CPUState *cs);
 uint64_t QFLEX_GET_ARCH(reg)(CPUState *cs, int reg_index);
 void	 QFLEX_GET_ARCH(log_inst)(CPUState *cs);
+uint32_t QFLEX_GET_ARCH(nzcv)(CPUState *cs);
 
 void qflex_dump_archstate_log(CPUState *cpu);
 

@@ -107,18 +107,18 @@ static bool run_debug(CPUState *cpu) {
 
     qemu_log("DevteroFlex:CPU[%i]:Running debug check\n", cpu->cpu_index);
     // Singlestep and compare
-    uint64_t pc_before_singlestep = QFLEX_GET_ARCH(pc)(cpu);
-    uint64_t asid_before_singlestep = QFLEX_GET_ARCH(asid)(cpu);
+    uint64_t pc_before_singlestep = QFLEX_RD_ARCH(pc)(cpu);
+    uint64_t asid_before_singlestep = QFLEX_RD_ARCH(asid)(cpu);
     qflex_singlestep(cpu);
     // continue until supervised instructions are runned.
-    while(QFLEX_GET_ARCH(el)(cpu) != 0){
+    while(QFLEX_RD_ARCH(el)(cpu) != 0){
         qflex_singlestep(cpu);
-        if(QFLEX_GET_ARCH(pc)(cpu) == pc_before_singlestep) {
+        if(QFLEX_RD_ARCH(pc)(cpu) == pc_before_singlestep) {
             // Rexecute instruction after IRQ
             qflex_singlestep(cpu);
         }
     }
-    uint32_t asid_after_singlestep = QFLEX_GET_ARCH(asid)(cpu);
+    uint32_t asid_after_singlestep = QFLEX_RD_ARCH(asid)(cpu);
 
     if(asid_before_singlestep != asid_after_singlestep) {
         printf("WARNING:DevteroFlex:Transplant:Something in the execution changed the ASID\n");
@@ -192,17 +192,17 @@ static void transplantRun(CPUState *cpu, uint32_t thid) {
     }
 
     // Execute the exception instruction
-    uint64_t pc_before_singlestep = QFLEX_GET_ARCH(pc)(cpu);
-    uint64_t asid_before_singlestep = QFLEX_GET_ARCH(asid)(cpu);
+    uint64_t pc_before_singlestep = QFLEX_RD_ARCH(pc)(cpu);
+    uint64_t asid_before_singlestep = QFLEX_RD_ARCH(asid)(cpu);
     qflex_singlestep(cpu);
     // continue until supervised instructions are runned.
-    while(QFLEX_GET_ARCH(el)(cpu) != 0){
+    while(QFLEX_RD_ARCH(el)(cpu) != 0){
         qflex_singlestep(cpu);
-        if(QFLEX_GET_ARCH(pc)(cpu) == pc_before_singlestep) {
+        if(QFLEX_RD_ARCH(pc)(cpu) == pc_before_singlestep) {
             qflex_singlestep(cpu);
         }
     }
-    uint64_t asid_after_singlestep = QFLEX_GET_ARCH(asid)(cpu);
+    uint64_t asid_after_singlestep = QFLEX_RD_ARCH(asid)(cpu);
     if(asid_before_singlestep != asid_after_singlestep) {
         printf("WARNING:DevteroFlex:Transplant:Something in the execution changed the ASID\n");
         qemu_log("WARNING:DevteroFlex:Transplant:Something in the execution changed the ASID\n");
@@ -368,7 +368,7 @@ int devteroflex_singlestepping_flow(void) {
     // If started in kernel mode continue until supervised instructions are runned
     CPUState *cpu;
     CPU_FOREACH(cpu) {
-        while(QFLEX_GET_ARCH(el)(cpu) != 0){
+        while(QFLEX_RD_ARCH(el)(cpu) != 0){
             qflex_singlestep(cpu);
         }
     }

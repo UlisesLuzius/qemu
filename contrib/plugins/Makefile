@@ -6,7 +6,7 @@
 # cflags that the main configure has already done for us.
 #
 
-BUILD_DIR := $(CURDIR)/../..
+BUILD_DIR := $(CURDIR)/../../build
 
 include $(BUILD_DIR)/config-host.mak
 
@@ -21,6 +21,7 @@ NAMES += lockstep
 NAMES += hwprofile
 NAMES += cache
 NAMES += drcov
+NAMES += characterization
 
 SONAMES := $(addsuffix .so,$(addprefix lib,$(NAMES)))
 
@@ -30,6 +31,7 @@ CFLAGS = $(GLIB_CFLAGS)
 CFLAGS += -fPIC -Wall $(filter -W%, $(QEMU_CFLAGS))
 CFLAGS += $(if $(findstring no-psabi,$(QEMU_CFLAGS)),-Wpsabi)
 CFLAGS += -I$(SRC_PATH)/include/qemu
+CFLAGS += -g
 
 all: $(SONAMES)
 

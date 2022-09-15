@@ -11,6 +11,8 @@
 #define QFLEX_GET_F(func) glue(qflex_get_, func)
 
 void qflex_print_state_asid_tid(CPUState* cs);
+uint32_t QFLEX_GET_ARCH(nzcv)(CPUState *cs);
+uint64_t QFLEX_GET_ARCH(asid_reg)(CPUState *cs);
 
 /* helper.c
  */

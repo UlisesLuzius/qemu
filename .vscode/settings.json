@@ -8,7 +8,7 @@
 		"**/target/cris": true,
 		"**/target/hexagon": true,
 		"**/target/hppa": true,
-		"**/target/i386": true,
+//		"**/target/i386": true,
 		"**/target/m68k": true,
 		"**/target/microblaze": true,
 		"**/target/mips": true,

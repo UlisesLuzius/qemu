@@ -440,3 +440,8 @@ uint64_t qemu_plugin_entry_code(void)
 #endif
     return entry;
 }
+
+bool     qemu_plugin_is_userland(const struct qemu_plugin_insn *insn) {
+    CPUState *cpu = current_cpu;
+    return qemu_plugin_vcpu_is_userland(cpu);
+}

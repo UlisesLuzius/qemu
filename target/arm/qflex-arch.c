@@ -8,8 +8,6 @@
 
 /* qflex/qflex-arch.h
  */
-#define ENV(cpu) ((CPUARMState *) cpu->env_ptr)
-
 uint64_t QFLEX_GET_ARCH(pc)(CPUState *cs) { return ENV(cs)->pc; }
 int      QFLEX_GET_ARCH(el)(CPUState *cs) { return arm_current_el(ENV(cs)); }
 
@@ -61,11 +59,6 @@ void QFLEX_GET_ARCH(log_inst)(CPUState *cs) {
 
 uint64_t gva_to_hva(CPUState *cs, uint64_t addr, int access_type) {
     return gva_to_hva_arch(cs, addr, (MMUAccessType) access_type);
-}
-
-uint64_t gva_to_hva_with_asid(uint64_t asid_reg, uint64_t vaddr, int access_type) {
-    CPUState *cs = first_cpu;
-    return gva_to_hva_arch_with_asid(cs, vaddr, (MMUAccessType) access_type, asid_reg);
 }
 
 void qflex_print_state_asid_tid(CPUState* cs) {

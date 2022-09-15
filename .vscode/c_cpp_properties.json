@@ -7,9 +7,11 @@
                 "${workspaceFolder}/**",
                 "/usr/include/glib-2.0",
                 "/usr/lib/x86_64-linux-gnu/glib-2.0/include",
+                "${workspaceFolder}/target/i386/**",
                 "${workspaceFolder}/target/arm/**",
                 "${workspaceFolder}/accel/tcg",
                 "${workspaceFolder}/tcg/arm",
+                "${workspaceFolder}/tcg/i386",
                 "${workspaceFolder}"
             ],
             "compilerPath": "/usr/bin/gcc-10",

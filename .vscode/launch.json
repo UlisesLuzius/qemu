@@ -6,33 +6,72 @@
 	"configurations": [
 	
 		{
-			"name": "QEMU Launch",
+			"name": "QEMU launch arm",
 			"type": "cppdbg",
 			"request": "launch",
 			"program": "${workspaceFolder}/build/aarch64-softmmu/qemu-system-aarch64",
 			"args": [
-  			"-cpu", "max", "-M", "virt,gic-version=3",
-  			"-smp", "4", "-m", "8G",
-  			"-nographic", "-rtc", "clock=vm",
-  			"-global", "virtio-blk-device.scsi=off",
-  			"-device", "virtio-scsi-device,id=scsi0",
-  			"-device", "virtio-scsi-device,id=scsi1",
-  			"-device", "virtio-scsi-pci,id=scsi2",
-  			"-device", "scsi-hd,drive=hd0",
-  			"-netdev", "user,id=net0,hostfwd=tcp::2243-:22",
-  			"-boot", "menu=on",
-  			"-device", "virtio-net-device,netdev=net0,mac=52:54:00:00:01:00",
-  			"-drive", "file=/home/ulises/Projects/QFlex/scripts/aarch64-working-img/flash0.qcow2,format=qcow2,if=pflash",
-  			"-drive", "file=/home/ulises/Projects/QFlex/scripts/aarch64-working-img/flash1.qcow2,format=qcow2,if=pflash",
-  			"-drive", "file=/home/ulises/Projects/QFlex/scripts/aarch64-working-img/ubuntu-arm64.qcow2,format=qcow2,id=hd0,if=none",
-			"-D", "~/.ccache/tmp/qemu-devtero-log",
-			"-loadvm", "base",
+				"-cpu", "max", "-M", "virt,gic-version=3",
+				"-smp", "4", "-m", "8g",
+				"-nographic", "-rtc", "clock=vm",
+				"-global", "virtio-blk-device.scsi=off",
+				"-device", "virtio-scsi-device,id=scsi0",
+				"-device", "virtio-scsi-device,id=scsi1",
+				"-device", "virtio-scsi-pci,id=scsi2",
+				"-device", "scsi-hd,drive=hd0",
+				"-netdev", "user,id=net0,hostfwd=tcp::2243-:22",
+				"-boot", "menu=on",
+				"-device", "virtio-net-device,netdev=net0,mac=52:54:00:00:01:00",
+				"-drive", "file=/home/ulises/Projects/QFlex/scripts/aarch64-working-img/flash0.qcow2,format=qcow2,if=pflash",
+				"-drive", "file=/home/ulises/Projects/QFlex/scripts/aarch64-working-img/flash1.qcow2,format=qcow2,if=pflash",
+				"-drive", "file=/home/ulises/Projects/QFlex/scripts/aarch64-working-img/ubuntu-arm64.qcow2,format=qcow2,id=hd0,if=none",
+				"-D", "~/.ccache/tmp/qemu-devtero-log",
+				"-loadvm", "base",
+				"-d", "plugin", "-plugin", "${workspaceFolder}/contrib/plugins/libcharacterization.so", 
+				"-d", "in_asm"
 			],
 			"stopAtEntry": false,
 			"cwd": "${workspaceFolder}/build/aarch64-softmmu",
-			"environment": [
-
+			"environment": [],
+			"externalConsole": false,
+			"MIMode": "gdb",
+			"setupCommands": [
+			    {
+				"description": "Enable pretty-printing for gdb",
+				"text": "-enable-pretty-printing",
+				"ignoreFailures": true
+			    },
+			    {
+				"description":  "Set Disassembly Flavor to Intel",
+				"text": "-gdb-set disassembly-flavor intel",
+				"ignoreFailures": true
+			    }
 			],
+		},
+
+		{
+			"name": "QEMU launch x86",
+			"type": "cppdbg",
+			"request": "launch",
+			"program": "${workspaceFolder}/build/x86_64-softmmu/qemu-system-x86_64",
+			"args": [
+				"-M", "q35", "-smp", "1", "-m", "8G",
+				"-nographic", "-rtc", "clock=vm",
+				"-global", "ICH9-LPC.disable_s3=1",
+				"-drive", "file=/home/ulises/Projects/QFlex/scripts/x64-img/OVMF_CODE.secboot.fd.qcow2,if=pflash,format=qcow2,unit=0,readonly=on",
+				"-drive", "file=/home/ulises/Projects/QFlex/scripts/x64-img/OVMF_VARS.fd.qcow2,if=pflash,format=qcow2,unit=1,readonly=on",
+				"-drive", "file=/home/ulises/Projects/QFlex/scripts/x64-img/ubuntu22_x64.qcow2,if=none,format=qcow2,id=disk1",
+				"-device", "virtio-blk-pci,drive=disk1,bootindex=1",
+				"-serial", "mon:stdio",
+				"-netdev", "user,id=net0,hostfwd=tcp::8022-:22",
+				"-device", "virtio-net-pci,netdev=net0,mac=52:54:00:02:21:00",
+				"-D", "~/.ccache/tmp/qemu-devtero-log",
+				"-loadvm", "base",
+//				"-d", "plugin", "-plugin", "${workspaceFolder}/contrib/plugins/libcharacterization.so", 
+			],
+			"stopAtEntry": false,
+			"cwd": "${workspaceFolder}/build/x86_64-softmmu",
+			"environment": [],
 			"externalConsole": false,
 			"MIMode": "gdb",
 			"setupCommands": [

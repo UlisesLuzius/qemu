@@ -226,6 +226,8 @@ void qemu_plugin_user_exit(void);
 
 bool qemu_plugin_vcpu_is_userland(CPUState *cpu);
 
+uint16_t qemu_plugin_vcpu_get_asid(CPUState *cpu);
+
 #else /* !CONFIG_PLUGIN */
 
 static inline void qemu_plugin_add_opts(void)
@@ -291,6 +293,9 @@ static inline void qemu_plugin_user_exit(void)
 { }
 
 static inline void qemu_plugin_vcpu_is_userland(CPUState *cpu)
+{ }
+
+static inline void qemu_plugin_vcpu_get_asid(CPUState *cpu)
 { }
 
 #endif /* !CONFIG_PLUGIN */

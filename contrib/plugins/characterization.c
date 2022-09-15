@@ -22,6 +22,7 @@ static bool sys;
 
 typedef struct {
     bool is_userland;
+    uint16_t asid;
     uint64_t vaddr;
     uint64_t haddr;
 } InsnData;
@@ -43,6 +44,7 @@ static void vcpu_mem_access(unsigned int vcpu_index, qemu_plugin_meminfo_t info,
 {
     uint64_t effective_addr;
     struct qemu_plugin_hwaddr *hwaddr;
+    bool is_store = qemu_plugin_mem_is_store(info);
 
     hwaddr = qemu_plugin_get_hwaddr(info, vaddr);
     if (hwaddr && qemu_plugin_hwaddr_is_io(hwaddr)) {
@@ -50,22 +52,23 @@ static void vcpu_mem_access(unsigned int vcpu_index, qemu_plugin_meminfo_t info,
     }
 
     effective_addr = hwaddr ? qemu_plugin_hwaddr_phys_addr(hwaddr) : vaddr;
-    g_autoptr(GString) mem_access_log = g_string_new("MEM");
-    g_string_append_printf(mem_access_log, "[%016lx]:PA[%016lx]", vaddr, effective_addr);
-//    qemu_plugin_outs(mem_access_log->str);
+    g_autoptr(GString) mem_access_log = g_string_new(":");
+    g_string_append_printf(mem_access_log, "%s[%016lx]PA[%016lx]", is_store ? "WR" : "LD", vaddr, effective_addr);
+    qemu_plugin_outs(mem_access_log->str);
 }
 
 static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
 {
     uint64_t insn_addr;
-    uint32_t insn_code;
+    uint32_t insn_code, insn_vcpu_n_userland;
     InsnData *insn_data = (InsnData *) userdata;
 
+    insn_vcpu_n_userland = (insn_data->is_userland << 15) | vcpu_index | (insn_data->asid << 16);
     insn_addr = insn_data->vaddr;
     insn_code = *((uint32_t *) insn_data->haddr);
     g_autoptr(GString) insn_log = g_string_new("\nPC");
-    g_string_append_printf(insn_log, "[%i][%016lx][%08x]", insn_data->is_userland, insn_addr, insn_code);
-//    qemu_plugin_outs(insn_log->str);
+    g_string_append_printf(insn_log, "[%04x][%016lx][%08x]", insn_vcpu_n_userland, insn_addr, insn_code);
+    qemu_plugin_outs(insn_log->str);
 }
 
 static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
@@ -89,6 +92,7 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
         if (data == NULL) {
             data = g_new0(InsnData, 1);
             data->is_userland = qemu_plugin_is_userland(insn);
+            data->asid = qemu_plugin_get_asid(insn);
             data->vaddr = (uint64_t) qemu_plugin_insn_vaddr(insn);
             data->haddr = haddr;
             g_hash_table_insert(eg_hashtable, GUINT_TO_POINTER(haddr),

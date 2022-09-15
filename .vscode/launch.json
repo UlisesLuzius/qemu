@@ -314,24 +314,3 @@
 		}
 	]
 }
-/*
--exec watch ((CPUState *)0x555557342130)->halted
--exec watch ((CPUState *)0x5555573a6010)->halted
--exec watch ((CPUState *)0x55555740c430)->halted
--exec watch ((CPUState *)0x5555574728c0)->halted
--exec watch ((CPUState *)0x5555574d8880)->halted
--exec watch ((CPUState *)0x55555753e980)->halted
--exec watch ((CPUState *)0x5555575a5500)->halted
--exec watch ((CPUState *)0x55555760b470)->halted
--exec watch ((CPUState *)0x5555576d7c60)->halted
--exec watch ((CPUState *)0x5555576714e0)->halted
--exec watch ((CPUState *)0x55555773dc20)->halted
--exec watch ((CPUState *)0x5555577a3be0)->halted
--exec watch ((CPUState *)0x555557809fa0)->halted
--exec watch ((CPUState *)0x5555578700f0)->halted
--exec watch ((CPUState *)0x5555578d6060)->halted
--exec watch ((CPUState *)0x55555793cc20)->halted
-
--exec condition 5 ((CPUState *)0x55555740bba0)->interrupt_request & (0x10 | 0x02 | 0x200 | 0x40 | 0x004)
-
-*/

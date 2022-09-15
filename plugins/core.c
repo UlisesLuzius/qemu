@@ -531,6 +531,10 @@ bool qemu_plugin_vcpu_is_userland(CPUState *cpu) {
     return HELPER(vcpu_is_userland)(cpu);
 }
 
+uint16_t qemu_plugin_vcpu_get_asid(CPUState *cpu) {
+    return HELPER(vcpu_get_asid)(cpu);
+}
+
 /*
  * Call this function after longjmp'ing to the main loop. It's possible that the
  * last instruction of a TB might have used helpers, and therefore the

@@ -9,3 +9,8 @@ bool HELPER(vcpu_is_userland)(CPUState *cpu) {
     int cpl = ENV(cpu)->hflags & HF_CPL_MASK;
     return cpl == 3; 
 }
+
+uint16_t HELPER(vcpu_get_asid)(CPUState *cpu) { 
+    // TODO
+    abort();
+}

@@ -7,5 +7,6 @@
 #define ENV(cpu) ((CPUArchState *) cpu->env_ptr)
 
 bool HELPER(vcpu_is_userland)(CPUState *cpu);
+uint16_t HELPER(vcpu_get_asid)(CPUState *cpu);
 
 #endif /* HELPER_ARCH_H */

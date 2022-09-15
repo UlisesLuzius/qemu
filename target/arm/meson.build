@@ -53,6 +53,7 @@ arm_ss.add(when: 'TARGET_AARCH64', if_true: files(
   'translate-a64.c',
   'translate-sve.c',
   'translate-sme.c',
+  'helper-arch.c',
 ))
 
 arm_ss.add(when: 'CONFIG_QFLEX', if_true: files(

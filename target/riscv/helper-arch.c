@@ -6,11 +6,11 @@
 #include "exec/helper-arch.h"
 
 bool HELPER(vcpu_is_userland)(CPUState *cpu) { 
-    int cpl = ENV(cpu)->hflags & HF_CPL_MASK;
-    return cpl == 3; 
+    return ENV(cpu)->priv != 0; 
 }
 
 uint16_t HELPER(vcpu_get_asid)(CPUState *cpu) { 
-    uint16_t pcid = ENV(cpu)->cr[3] & 0xfff;
-    return pcid;
+    uint64_t asid_bits = ENV(cpu)->satp & SATP64_ASID;
+    uint64_t asid = asid_hi >> 48;
+    return asid;
 }

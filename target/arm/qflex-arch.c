@@ -11,8 +11,8 @@
 uint64_t gva_to_hva(CPUState *cs, uint64_t addr, int access_type) { return gva_to_hva_arch(cs, addr, (MMUAccessType) access_type); }
 uint64_t gva_to_hva_with_asid(uint64_t asid_reg, uint64_t vaddr, int access_type) { return gva_to_hva_arch_with_asid(first_cpu, vaddr, (MMUAccessType) access_type, asid_reg); }
 
-int      QEMU_get_num_cores(void) { return smp_cores; }
-int      QEMU_get_num_threads_per_core(void) { return smp_threads; }
+int      QEMU_get_num_cores(void) { return 0; /* TODO smp_cores */ }
+int      QEMU_get_num_threads_per_core(void) { return 0; /* TODO smp_threads */ }
 
 bool     QFLEX_RD_ARCH(is_idle)(CPUState *cs) { return cpu_thread_is_idle(cs); }
 int      QFLEX_RD_ARCH(cpu_index)(CPUState *cs) { return cs->cpu_index; }

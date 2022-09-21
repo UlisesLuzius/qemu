@@ -57,12 +57,9 @@
 			"args": [
 				"-M", "q35", "-smp", "1", "-m", "8G",
 				"-nographic", "-rtc", "clock=vm",
-				"-global", "ICH9-LPC.disable_s3=1",
 				"-drive", "file=/home/ulises/Projects/QFlex/scripts/x64-img/OVMF_CODE.secboot.fd.qcow2,if=pflash,format=qcow2,unit=0,readonly=on",
-				"-drive", "file=/home/ulises/Projects/QFlex/scripts/x64-img/OVMF_VARS.fd.qcow2,if=pflash,format=qcow2,unit=1,readonly=on",
 				"-drive", "file=/home/ulises/Projects/QFlex/scripts/x64-img/ubuntu22_x64.qcow2,if=none,format=qcow2,id=disk1",
 				"-device", "virtio-blk-pci,drive=disk1,bootindex=1",
-				"-serial", "mon:stdio",
 				"-netdev", "user,id=net0,hostfwd=tcp::8022-:22",
 				"-device", "virtio-net-pci,netdev=net0,mac=52:54:00:02:21:00",
 				"-D", "~/.ccache/tmp/qemu-devtero-log",

@@ -22,6 +22,8 @@ NAMES += hwprofile
 NAMES += cache
 NAMES += drcov
 NAMES += characterization
+NAMES += cache-sim
+
 
 SONAMES := $(addsuffix .so,$(addprefix lib,$(NAMES)))
 

@@ -589,5 +589,7 @@ void qemu_plugin_outs(const char *string);
  * argument, and false otherwise
  */
 bool qemu_plugin_bool_parse(const char *name, const char *val, bool *ret);
+bool     qemu_plugin_is_userland(const struct qemu_plugin_insn *insn);
+uint16_t qemu_plugin_get_asid(const struct qemu_plugin_insn *insn);
 
 #endif /* QEMU_PLUGIN_API_H */

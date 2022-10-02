@@ -391,3 +391,13 @@ bool qemu_plugin_bool_parse(const char *name, const char *value, bool *ret)
 {
     return name && value && qapi_bool_parse(name, value, ret, NULL);
 }
+
+bool     qemu_plugin_is_userland(const struct qemu_plugin_insn *insn) {
+    CPUState *cpu = current_cpu;
+    return qemu_plugin_vcpu_is_userland(cpu);
+}
+
+uint16_t qemu_plugin_get_asid(const struct qemu_plugin_insn *insn) {
+    CPUState *cpu = current_cpu;
+    return qemu_plugin_vcpu_get_asid(cpu);
+}

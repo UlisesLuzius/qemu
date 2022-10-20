@@ -489,10 +489,6 @@ static bool evict_l1_after_l2(Cache *cache, uint64_t replaced_blk_addr)
 static void vcpu_mem_access(unsigned int vcpu_index, qemu_plugin_meminfo_t info,
                             uint64_t vaddr, void *userdata)
 {
-    if(vcpu_index != 1) {
-        return;
-    }
- 
     uint64_t effective_addr;
     struct qemu_plugin_hwaddr *hwaddr;
     int cache_idx;
@@ -559,9 +555,6 @@ static void vcpu_mem_access(unsigned int vcpu_index, qemu_plugin_meminfo_t info,
 
 static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
 {
-    if(vcpu_index != 1) {
-        return;
-    }
     imem_access++;
     if((imem_access % 100000000) == 0) {
         log_stats();

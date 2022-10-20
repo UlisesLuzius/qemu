@@ -4,12 +4,11 @@
  * License: GNU GPL, version 2 or later.
  *   See the COPYING file in the top-level directory.
  */
+
 #include <inttypes.h>
-#include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 #include <math.h>
+
 #include <glib.h>
 
 #include <qemu-plugin.h>
@@ -37,21 +36,16 @@ static GMutex *eg_locks_2;
 static GMutex hashtable_lock;
 static GHashTable *eg_hashtable;
 
-static long tot_insn = -1;
-static long curr_insn = 0;
-
-FILE *fp[8];
 
 static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
 {
-    if (vcpu_index == 1 && curr_insn <= tot_insn) {
-        InsnData *insn_data = (InsnData *) userdata;
-        fwrite(&insn_data->pc, sizeof(uint64_t), 1, fp[0]);
-        curr_insn++;
-    }
-
-    if (curr_insn > tot_insn) {
-        abort();
+    uint64_t pc;
+    InsnData *insn_data = (InsnData *) userdata;
+    pc = insn_data->pc;
+    if(vcpu_index == 1) {
+        g_autoptr(GString) insn_log = g_string_new("");
+        g_string_append_printf(insn_log, "%016lx", pc);
+        qemu_plugin_outs(insn_log->str);
     }
 }
 
@@ -89,7 +83,6 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
 
 static void log_stats(void)
 {
-
 }
 
 static void plugin_exit(qemu_plugin_id_t id, void *p)
@@ -98,10 +91,6 @@ static void plugin_exit(qemu_plugin_id_t id, void *p)
 
     g_free(eg_locks_1);
     g_free(eg_locks_2);
-
-    for (int i = 0; i < 8; i++) {
-        fclose(fp[i]);
-    }
 
     g_hash_table_destroy(eg_hashtable);
 }
@@ -133,22 +122,14 @@ int qemu_plugin_install(qemu_plugin_id_t id, const qemu_info_t *info,
         char *opt = argv[i];
         g_autofree char **tokens = g_strsplit(opt, "=", 2);
 
-        if (g_strcmp0(tokens[0], "tot_insn") == 0) {
-            tot_insn = STRTOLL(tokens[1]);
+        if (g_strcmp0(tokens[0], "ways") == 0) {
+            eg_setting_1 = STRTOLL(tokens[1]);
+        } else if (g_strcmp0(tokens[0], "sets") == 0) {
+            eg_setting_1 = STRTOLL(tokens[1]);
         } else {
             fprintf(stderr, "option parsing failed: %s\n", opt);
             return -1;
         }
-    }
-
-    if (tot_insn < 0) {
-        abort();
-    }
-
-    for (int i = 0; i < 8; i++) {
-        g_autoptr(GString) path = g_string_new("trace.");
-        g_string_append_printf(path, "%i", i);
-        fp[i] = fopen(path->str, "w");
     }
 
     eg_locks_1 = g_new0(GMutex, cores);

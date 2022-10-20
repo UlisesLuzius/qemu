@@ -21,6 +21,9 @@ NAMES += lockstep
 NAMES += hwprofile
 NAMES += cache
 NAMES += inst-trace
+NAMES += cache-inclusive
+NAMES += cache-inclusive-parallel
+NAMES += cache-inclusive-parallel-4-7
 
 SONAMES := $(addsuffix .so,$(addprefix lib,$(NAMES)))
 
@@ -31,7 +34,30 @@ CFLAGS += -fPIC -Wall $(filter -W%, $(QEMU_CFLAGS))
 CFLAGS += $(if $(findstring no-psabi,$(QEMU_CFLAGS)),-Wpsabi)
 CFLAGS += -I$(SRC_PATH)/include/qemu
 
-all: $(SONAMES)
+all: cache-sim-naked.o cache-inclusive-parallel.o $(SONAMES)
+
+cache-sim-naked.o : cache-sim-naked.c cache-parallel.h
+	$(CC) -pthread -I/usr/include/glib-2.0 -I/usr/lib/x86_64-linux-gnu/glib-2.0/include -Wall -fPIC -c -o $@ $<
+
+cache-inclusive-parallel.o : cache-inclusive-parallel.c cache-parallel.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+libcache-inclusive-parallel.so: cache-inclusive-parallel.o cache-sim-naked.o
+	$(CC) -shared -Wl,-soname,$@ -o $@ $^ $(LDLIBS)
+
+cache-inclusive-parallel-4-7.o : cache-inclusive-parallel.c cache-parallel.h
+	$(CC) $(CFLAGS) -DCONFIG_4_7 -c -o $@ $<
+
+libcache-inclusive-parallel-4-7.so: cache-inclusive-parallel-4-7.o cache-sim-naked.o
+	$(CC) -shared -DCONFIG_4_7 -Wl,-soname,$@ -o $@ $^ $(LDLIBS)
+
+cache-inclusive-parallel-1-3.o : cache-inclusive-parallel.c cache-parallel.h
+	$(CC) $(CFLAGS) -DCONFIG_1_3 -c -o $@ $<
+
+libcache-inclusive-parallel-1-3.so: cache-inclusive-parallel-1-3.o cache-sim-naked.o
+	$(CC) -shared -DCONFIG_1_3 -Wl,-soname,$@ -o $@ $^ $(LDLIBS)
+
+
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<

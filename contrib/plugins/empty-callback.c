@@ -37,11 +37,16 @@ static GMutex *eg_locks_2;
 static GMutex hashtable_lock;
 static GHashTable *eg_hashtable;
 
-static long curr_insn = 0;
+static long curr_insn[16] = {0};
 
 static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
 {
-    curr_insn++;
+    curr_insn[vcpu_index]++;
+    if(curr_insn[vcpu_index]%10000000 == 0) {
+        g_autoptr(GString) rep = g_string_new("vcpu");
+        g_string_append_printf(rep, "[%i]:%ld", vcpu_index, curr_insn[vcpu_index]);
+        qemu_plugin_outs(rep->str);
+    }
     return;
 }
 

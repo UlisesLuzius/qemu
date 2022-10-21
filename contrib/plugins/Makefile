@@ -24,6 +24,7 @@ NAMES += drcov
 NAMES += inst-trace
 NAMES += cache-inclusive
 NAMES += cache-inclusive-parallel
+NAMES += cache-inclusive-parallel-1
 NAMES += cache-inclusive-parallel-4-7
 NAMES += empty-callback
 
@@ -59,6 +60,11 @@ cache-inclusive-parallel-1-3.o : cache-inclusive-parallel.c cache-parallel.h
 libcache-inclusive-parallel-1-3.so: cache-inclusive-parallel-1-3.o cache-sim-naked.o
 	$(CC) -shared -DCONFIG_1_3 -Wl,-soname,$@ -o $@ $^ $(LDLIBS)
 
+cache-inclusive-parallel-1.o : cache-inclusive-parallel.c cache-parallel.h
+	$(CC) $(CFLAGS) -DCONFIG_1 -c -o $@ $<
+
+libcache-inclusive-parallel-1.so: cache-inclusive-parallel-1.o cache-sim-naked.o
+	$(CC) -shared -DCONFIG_1 -Wl,-soname,$@ -o $@ $^ $(LDLIBS)
 
 
 %.o: %.c

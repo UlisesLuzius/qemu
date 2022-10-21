@@ -57,7 +57,7 @@ static void vcpu_mem_access(unsigned int vcpu_index, qemu_plugin_meminfo_t info,
     if(!(vcpu_index == 2 || vcpu_index == 3)) { return; }
 #elif CONFIG_5_7
     if(!(vcpu_index == 5 || vcpu_index == 6 || vcpu_index == 7)) { return; }
-#else
+#elif CONFIG_1
     if(vcpu_index != 1) { return; }
 #endif
     hwaddr = qemu_plugin_get_hwaddr(info, vaddr);

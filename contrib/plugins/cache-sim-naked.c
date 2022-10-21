@@ -60,6 +60,12 @@ typedef struct {
     uint64_t access;
     uint64_t misses;
 
+    uint64_t access_user;
+    uint64_t misses_user;
+
+    uint64_t access_kernel;
+    uint64_t misses_kernel;
+
     uint64_t l2_daccess;
     uint64_t l2_iaccess;
     uint64_t l2_dmisses;
@@ -83,12 +89,23 @@ static __thread Cache **l2_ucaches;
 
 static __thread FILE *logfile;
 
-static __thread uint64_t imem_access = 0;
+static __thread uint64_t iaccess = 0;
 
-static __thread uint64_t l1_dmem_access;
-static __thread uint64_t l1_imem_access;
+static __thread uint64_t l1_daccess;
+static __thread uint64_t l1_iaccess;
 static __thread uint64_t l1_imisses;
 static __thread uint64_t l1_dmisses;
+
+static __thread uint64_t l1_daccess_user;
+static __thread uint64_t l1_iaccess_user;
+static __thread uint64_t l1_imisses_user;
+static __thread uint64_t l1_dmisses_user;
+
+static __thread uint64_t l1_daccess_kernel;
+static __thread uint64_t l1_iaccess_kernel;
+static __thread uint64_t l1_imisses_kernel;
+static __thread uint64_t l1_dmisses_kernel;
+
 
 static __thread uint64_t l2_mem_access;
 static __thread uint64_t l2_misses;
@@ -221,6 +238,14 @@ static Cache *cache_init(int blksize, int assoc, int cachesize)
     cache->blksize_shift = pow_of_two(blksize);
     cache->access = 0;
     cache->misses = 0;
+
+    cache->access_user = 0;
+    cache->misses_user = 0;
+    cache->access_kernel = 0;
+    cache->misses_kernel = 0;
+
+
+
     cache->l2_dmisses = 0;
     cache->l2_imisses = 0;
     cache->l2_daccess = 0;
@@ -396,9 +421,19 @@ static void mem_access(unsigned int vcpu_index, uint64_t addr, bool is_user)
     hit_in_l1 = access_cache(l1_dcaches[cache_idx], addr);
     if (!hit_in_l1) {
         l1_dcaches[cache_idx]->misses++;
+        if(is_user) {
+            l1_dcaches[cache_idx]->misses_user++;
+        } else {
+            l1_dcaches[cache_idx]->misses_kernel++;
+        }
     }
     l1_dcaches[cache_idx]->access++;
-
+    if(is_user) {
+        l1_dcaches[cache_idx]->access_user++;
+    } else {
+        l1_dcaches[cache_idx]->access_kernel++;
+    }
+ 
     if (hit_in_l1) {
         /* No need to access L2 */
         return;
@@ -430,10 +465,10 @@ static void mem_access(unsigned int vcpu_index, uint64_t addr, bool is_user)
 
 static void insn_access(unsigned int vcpu_index, uint64_t insn_addr, bool is_user)
 {
-    if((imem_access % 1000000000) == 0) {
+    if((iaccess % 1000000000) == 0) {
         log_stats();
     }
-    imem_access++;
+    iaccess++;
 
     int cache_idx;
     bool hit_in_l1 = false, hit_in_l2 = false;
@@ -442,9 +477,19 @@ static void insn_access(unsigned int vcpu_index, uint64_t insn_addr, bool is_use
     hit_in_l1 = access_cache(l1_icaches[cache_idx], insn_addr);
     if (!hit_in_l1) {
         l1_icaches[cache_idx]->misses++;
+        if(is_user) {
+            l1_icaches[cache_idx]->misses_user++;
+        } else {
+            l1_icaches[cache_idx]->misses_kernel++;
+        }
     }
     l1_icaches[cache_idx]->access++;
-
+    if(is_user) {
+        l1_icaches[cache_idx]->access_user++;
+    } else {
+        l1_icaches[cache_idx]->access_kernel++;
+    }
+ 
     if (hit_in_l1) {
         /* No need to access L2 */
         return;
@@ -497,20 +542,24 @@ static void caches_free(Cache **caches)
 static void append_stats_line(GString *line, 
                               uint64_t l1_daccess, uint64_t l1_dmisses, 
                               uint64_t l1_iaccess, uint64_t l1_imisses, 
+                              uint64_t l1_daccess_user, uint64_t l1_dmisses_user,
+                              uint64_t l1_iaccess_user, uint64_t l1_imisses_user,
+                              uint64_t l1_daccess_kernel, uint64_t l1_dmisses_kernel, 
+                              uint64_t l1_iaccess_kernel, uint64_t l1_imisses_kernel, 
+ 
                               uint64_t l2_dmisses, uint64_t l2_daccess,
                               uint64_t l2_imisses, uint64_t l2_iaccess,
                               uint64_t l2_dmisses_user, uint64_t l2_daccess_user,
                               uint64_t l2_imisses_user, uint64_t l2_iaccess_user,
                               uint64_t l2_dmisses_kernel, uint64_t l2_daccess_kernel,
                               uint64_t l2_imisses_kernel, uint64_t l2_iaccess_kernel,
+
                               uint64_t l2_access,  uint64_t l2_misses)
 {
     double l1_dmiss_rate, l1_imiss_rate, l2_miss_rate;
     double l2_dmiss_rate, l2_imiss_rate;
     double l2_dmiss_rate_user, l2_imiss_rate_user;
     double l2_dmiss_rate_kernel, l2_imiss_rate_kernel;
-
-
 
     l1_dmiss_rate = ((double) l1_dmisses) / (l1_daccess) * 100.0;
     l1_imiss_rate = ((double) l1_imisses) / (l1_iaccess) * 100.0;
@@ -543,6 +592,20 @@ static void append_stats_line(GString *line,
 
     g_string_append(line, " kernel ");
 
+
+    double l1_dmiss_rate_kernel = ((double) l1_dmisses_kernel) / (l1_daccess_kernel) * 100.0;
+    double l1_imiss_rate_kernel = ((double) l1_imisses_kernel) / (l1_iaccess_kernel) * 100.0;
+
+    g_string_append_printf(line, "%-14lu %-12lu %9.4lf%%  %-14lu %-12lu"
+                           " %9.4lf%%",
+                           l1_daccess_kernel,
+                           l1_dmisses_kernel,
+                           l1_dmiss_rate_kernel,
+                           l1_iaccess_kernel,
+                           l1_imisses_kernel,
+                           l1_imiss_rate_kernel);
+
+
     uint64_t l2_access_user = l2_daccess_user + l2_iaccess_user;
     uint64_t l2_access_kernel = l2_daccess_kernel + l2_iaccess_kernel;
     uint64_t l2_misses_user = l2_dmisses_user + l2_imisses_user;
@@ -571,6 +634,18 @@ static void append_stats_line(GString *line,
 
     g_string_append(line, " user   ");
 
+    double l1_dmiss_rate_user = ((double) l1_dmisses_user) / (l1_daccess_user) * 100.0;
+    double l1_imiss_rate_user = ((double) l1_imisses_user) / (l1_iaccess_user) * 100.0;
+
+    g_string_append_printf(line, "%-14lu %-12lu %9.4lf%%  %-14lu %-12lu"
+                           " %9.4lf%%",
+                           l1_daccess_user,
+                           l1_dmisses_user,
+                           l1_dmiss_rate_user,
+                           l1_iaccess_user,
+                           l1_imisses_user,
+                           l1_imiss_rate_user);
+
 
     g_string_append_printf(line, "  %-12lu %-11lu %10.4lf%%",
                            l2_daccess_user,
@@ -595,8 +670,20 @@ static void sum_stats(void)
     int i;
     l1_imisses = 0;
     l1_dmisses = 0;
-    l1_imem_access = 0;
-    l1_dmem_access = 0;
+    l1_iaccess = 0;
+    l1_daccess = 0;
+
+    l1_imisses_user = 0;
+    l1_dmisses_user = 0;
+    l1_iaccess_user = 0;
+    l1_daccess_user = 0;
+
+    l1_imisses_kernel = 0;
+    l1_dmisses_kernel = 0;
+    l1_iaccess_kernel = 0;
+    l1_daccess_kernel = 0;
+
+
     l2_misses = 0;
     l2_mem_access = 0;
     l2_imisses = 0;
@@ -618,8 +705,19 @@ static void sum_stats(void)
     for (i = 0; i < cores; i++) {
         l1_imisses += l1_icaches[i]->misses;
         l1_dmisses += l1_dcaches[i]->misses;
-        l1_imem_access += l1_icaches[i]->access;
-        l1_dmem_access += l1_dcaches[i]->access;
+        l1_iaccess += l1_icaches[i]->access;
+        l1_daccess += l1_dcaches[i]->access;
+
+        l1_imisses_user += l1_icaches[i]->misses_user;
+        l1_dmisses_user += l1_dcaches[i]->misses_user;
+        l1_iaccess_user += l1_icaches[i]->access_user;
+        l1_daccess_user += l1_dcaches[i]->access_user;
+
+        l1_imisses_kernel += l1_icaches[i]->misses_kernel;
+        l1_dmisses_kernel += l1_dcaches[i]->misses_kernel;
+        l1_iaccess_kernel += l1_icaches[i]->access_kernel;
+        l1_daccess_kernel += l1_dcaches[i]->access_kernel;
+
 
         l2_misses += l2_ucaches[i]->misses;
         l2_mem_access += l2_ucaches[i]->access;
@@ -654,10 +752,18 @@ static void log_stats(void)
                          ", l2 access, l2 misses, l2 miss rate");
 
     g_string_append(rep, "\n");
-    g_string_append(rep, ", l2 daccess user, l2 dmisses user, l2 dmiss rate user"
+    g_string_append(rep, 
+                         ", l1 daccess user, l1 dmisses user, l1 dmiss rate user"
+                         ", l1 iaccess user, l1 imisses user, l1 imiss rate user"
+                         ", l1 access user, l1 misses user, l1 miss rate user"
+                         ", l2 daccess user, l2 dmisses user, l2 dmiss rate user"
                          ", l2 iaccess user, l2 imisses user, l2 imiss rate user"
                          ", l2 access user, l2 misses user, l2 miss rate user");
-    g_string_append(rep, ", l2 daccess kernel, l2 dmisses kernel, l2 dmiss rate kernel"
+    g_string_append(rep, 
+                         ", l1 daccess user, l1 dmisses user, l1 dmiss rate user"
+                         ", l1 iaccess user, l1 imisses user, l1 imiss rate user"
+                         ", l1 access user, l1 misses user, l1 miss rate user"
+                         ", l2 daccess kernel, l2 dmisses kernel, l2 dmiss rate kernel"
                          ", l2 iaccess kernel, l2 imisses kernel, l2 imiss rate kernel"
                          ", l2 access kernel, l2 misses kernel, l2 miss rate kernel");
     g_string_append(rep, "\n");
@@ -672,6 +778,11 @@ static void log_stats(void)
         append_stats_line(rep, 
                 dcache->access, dcache->misses,
                 icache->access, icache->misses,
+                dcache->access_user, dcache->misses_user,
+                icache->access_user, icache->misses_user,
+                dcache->access_kernel, dcache->misses_kernel,
+                icache->access_kernel, icache->misses_kernel,
+ 
                 l2_cache->l2_dmisses, l2_cache->l2_daccess,
                 l2_cache->l2_imisses, l2_cache->l2_iaccess,
                 l2_cache->l2_dmisses_user, l2_cache->l2_daccess_user,
@@ -685,10 +796,15 @@ static void log_stats(void)
         sum_stats();
         g_string_append_printf(rep, "%-8s", "sum");
         append_stats_line(rep, 
-                l1_dmem_access, l1_dmisses,
-                l1_imem_access, l1_imisses,
-                l2_dmisses,    l2_daccess,
-                l2_imisses,    l2_iaccess,
+                l1_daccess, l1_dmisses,
+                l1_iaccess, l1_imisses,
+                l1_daccess_user, l1_dmisses_user,
+                l1_iaccess_user, l1_imisses_user,
+                l1_daccess_kernel, l1_dmisses_kernel,
+                l1_iaccess_kernel, l1_imisses_kernel,
+ 
+                l2_dmisses, l2_daccess,
+                l2_imisses, l2_iaccess,
                 l2_dmisses_user, l2_daccess_user,
                 l2_imisses_user, l2_iaccess_user,
                 l2_dmisses_kernel, l2_daccess_kernel,

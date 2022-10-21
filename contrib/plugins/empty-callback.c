@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <math.h>
 #include <glib.h>
+#include <time.h>
 
 #include <qemu-plugin.h>
 
@@ -44,7 +45,7 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
     curr_insn[vcpu_index]++;
     if(curr_insn[vcpu_index]%10000000 == 0) {
         g_autoptr(GString) rep = g_string_new("vcpu");
-        g_string_append_printf(rep, "[%i]:%ld", vcpu_index, curr_insn[vcpu_index]);
+        g_string_append_printf(rep, "[%i]:%016ld time: %ld", vcpu_index, curr_insn[vcpu_index], time(NULL));
         qemu_plugin_outs(rep->str);
     }
     return;

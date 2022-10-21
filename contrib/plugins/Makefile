@@ -25,6 +25,7 @@ NAMES += inst-trace
 NAMES += cache-inclusive
 NAMES += cache-inclusive-parallel
 NAMES += cache-inclusive-parallel-4-7
+NAMES += empty-callback
 
 SONAMES := $(addsuffix .so,$(addprefix lib,$(NAMES)))
 

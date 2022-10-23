@@ -38,11 +38,14 @@ static size_t l2_sizes[TOT_SIM] = {
 static CacheConfig configs[TOT_SIM];
 static pthread_t thread_ids[TOT_SIM];
 static FifoQueue sim_queues[TOT_SIM];
-static GMutex sim_queue_locks[TOT_SIM];
+
+static size_t totInsn = 0;
+static size_t byteSizeDist[32][16] = {0};
 
 typedef struct {
     uint64_t addr;
     bool is_user;
+    size_t size;
 } InsnData;
 
 static void vcpu_mem_access(unsigned int vcpu_index, qemu_plugin_meminfo_t info,
@@ -91,6 +94,22 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
 #else
     if(vcpu_index != 1) { return; }
 #endif
+
+    size_t byteSize = ((InsnData *) userdata)->size;
+    byteSizeDist[vcpu_index][byteSize]++;
+    totInsn++;
+    if((totInsn % 1000000000) == 0) {
+        g_autoptr(GString) rep = g_string_new("byteSizeDisk:\n");
+        for(int cpu = 0; cpu < 16; cpu++) {
+            for(int insnSize = 0; insnSize < 16; insnSize++) {
+                g_string_append_printf(rep, "%u,%u,%016ld\n", 
+                                   vcpu_index, insnSize, byteSizeDist[vcpu_index][insnSize]);
+
+            }
+        }
+        qemu_plugin_outs(rep->str);
+    }
+
     uint64_t haddr = ((InsnData *) userdata)->addr;
     bool is_user = ((InsnData *) userdata)->is_user;
 
@@ -129,6 +148,7 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
             data = g_new0(InsnData, 1);
             data->addr = effective_addr;
             data->is_user = qemu_plugin_is_userland(insn);
+            data->size = qemu_plugin_insn_size(insn);
             g_hash_table_insert(miss_ht, GUINT_TO_POINTER(effective_addr),
                                (gpointer) data);
         }

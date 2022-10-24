@@ -31,7 +31,7 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *bytesize_val)
         for(int cpu = 0; cpu < 16; cpu++) {
             for(int insnSize = 0; insnSize < 16; insnSize++) {
                 g_string_append_printf(rep, "%u,%u,%016ld\n", 
-                                   vcpu_index, insnSize, byteSizeDist[vcpu_index][insnSize]);
+                                   cpu, insnSize, byteSizeDist[cpu][insnSize]);
 
             }
         }

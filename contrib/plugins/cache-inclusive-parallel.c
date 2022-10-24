@@ -40,7 +40,7 @@ static pthread_t thread_ids[TOT_SIM];
 static FifoQueue sim_queues[TOT_SIM];
 
 static size_t totInsn = 0;
-static size_t byteSizeDist[32][16] = {0};
+static size_t byteSizeDist[2][32][16] = {0};
 
 typedef struct {
     uint64_t addr;
@@ -96,22 +96,27 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
 #endif
 
     size_t byteSize = ((InsnData *) userdata)->size;
-    byteSizeDist[vcpu_index][byteSize]++;
+    uint64_t haddr = ((InsnData *) userdata)->addr;
+    bool is_user = ((InsnData *) userdata)->is_user;
+    if(is_user) {
+        byteSizeDist[0][vcpu_index][byteSize]++;
+    } else {
+        byteSizeDist[1][vcpu_index][byteSize]++;
+    }
+
     totInsn++;
     if((totInsn % 1000000000) == 0) {
         g_autoptr(GString) rep = g_string_new("byteSizeDisk:\n");
         for(int cpu = 0; cpu < 16; cpu++) {
             for(int insnSize = 0; insnSize < 16; insnSize++) {
-                g_string_append_printf(rep, "%u,%u,%016ld\n", 
-                                   cpu, insnSize, byteSizeDist[cpu][insnSize]);
-
+                g_string_append_printf(rep, "%u,%u,%016ld,%016ld\n", 
+                                   cpu, insnSize, byteSizeDist[0][cpu][insnSize],
+                                   byteSizeDist[1][cpu][insnSize]);
             }
         }
         qemu_plugin_outs(rep->str);
     }
 
-    uint64_t haddr = ((InsnData *) userdata)->addr;
-    bool is_user = ((InsnData *) userdata)->is_user;
 
     for (int idx = 0; idx < TOT_SIM; idx++) {
         while(!queue_can_push(&sim_queues[idx])) {

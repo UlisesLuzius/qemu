@@ -106,7 +106,8 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
 
     totInsn++;
     if((totInsn % 1000000000) == 0) {
-        g_autoptr(GString) rep = g_string_new("byteSizeDisk:\n");
+        g_autoptr(GString) rep = g_string_new("cpu,byte,user,kernel");
+        g_string_append_printf(rep, "[%016ld]\n", totInsn); 
         for(int cpu = 0; cpu < 16; cpu++) {
             for(int insnSize = 0; insnSize < 16; insnSize++) {
                 g_string_append_printf(rep, "%u,%u,%016ld,%016ld\n", 

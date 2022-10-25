@@ -872,7 +872,7 @@ void *sim_init(void *config_)
     }
 
     g_autoptr(GString) rep = g_string_new("cache-results-");
-    g_string_append_printf(rep, "%dKB", l2_cachesize/1024);
+    g_string_append_printf(rep, "%04dKB", l2_cachesize/1024);
     logfile = fopen(rep->str, "w");
     assert(logfile);
 

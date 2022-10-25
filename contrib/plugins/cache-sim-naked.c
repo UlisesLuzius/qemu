@@ -564,8 +564,7 @@ static void append_stats_line(GString *line,
     l1_dmiss_rate = ((double) l1_dmisses) / (l1_daccess) * 100.0;
     l1_imiss_rate = ((double) l1_imisses) / (l1_iaccess) * 100.0;
 
-    g_string_append_printf(line, "%-14lu %-12lu %9.4lf%%  %-14lu %-12lu"
-                           " %9.4lf%%",
+    g_string_append_printf(line, "%-14lu, %-12lu, %9.4lf%%,  %-14lu %-12lu, %9.4lf%%",
                            l1_daccess,
                            l1_dmisses,
                            l1_dmiss_rate,
@@ -576,28 +575,27 @@ static void append_stats_line(GString *line,
     l2_dmiss_rate = ((double) l2_dmisses) / (l2_daccess) * 100.0;
     l2_imiss_rate = ((double) l2_imisses) / (l2_iaccess) * 100.0;
     l2_miss_rate =  ((double) l2_misses) / (l2_access) * 100.0;
-    g_string_append_printf(line, "  %-12lu %-11lu %10.4lf%%",
+    g_string_append_printf(line, "  %-12lu, %-11lu, %10.4lf%%,",
                            l2_daccess,
                            l2_dmisses,
                            l2_dmiss_rate);
-    g_string_append_printf(line, "  %-12lu %-11lu %10.4lf%%",
+    g_string_append_printf(line, "  %-12lu, %-11lu, %10.4lf%%,",
                            l2_iaccess,
                            l2_imisses,
                            l2_imiss_rate);
-    g_string_append_printf(line, "  %-12lu %-11lu %10.4lf%%",
+    g_string_append_printf(line, "  %-12lu, %-11lu, %10.4lf%%,",
                            l2_access,
                            l2_misses,
                            l2_miss_rate);
     g_string_append(line, "\n");
 
-    g_string_append(line, " kernel ");
+    g_string_append(line, " kernel ,");
 
 
     double l1_dmiss_rate_kernel = ((double) l1_dmisses_kernel) / (l1_daccess_kernel) * 100.0;
     double l1_imiss_rate_kernel = ((double) l1_imisses_kernel) / (l1_iaccess_kernel) * 100.0;
 
-    g_string_append_printf(line, "%-14lu %-12lu %9.4lf%%  %-14lu %-12lu"
-                           " %9.4lf%%",
+    g_string_append_printf(line, "%-14lu. %-12lu, %9.4lf%%,  %-14lu, %-12lu, %9.4lf%%,",
                            l1_daccess_kernel,
                            l1_dmisses_kernel,
                            l1_dmiss_rate_kernel,
@@ -617,22 +615,22 @@ static void append_stats_line(GString *line,
     double l2_miss_rate_kernel =  ((double) l2_misses_kernel) / (l2_access_kernel) * 100.0;
     double l2_miss_rate_user =  ((double) l2_misses_user) / (l2_access_user) * 100.0;
 
-    g_string_append_printf(line, "  %-12lu %-11lu %10.4lf%%",
+    g_string_append_printf(line, "  %-12lu, %-11lu, %10.4lf%%,",
                            l2_daccess_kernel,
                            l2_dmisses_kernel,
                            l2_dmiss_rate_kernel);
-    g_string_append_printf(line, "  %-12lu %-11lu %10.4lf%%",
+    g_string_append_printf(line, "  %-12lu, %-11lu, %10.4lf%%,",
                            l2_iaccess_kernel,
                            l2_imisses_kernel,
                            l2_imiss_rate_kernel);
-    g_string_append_printf(line, "  %-12lu %-11lu %10.4lf%%",
+    g_string_append_printf(line, "  %-12lu, %-11lu, %10.4lf%%",
                            l2_access_kernel,
                            l2_misses_kernel,
                            l2_miss_rate_kernel);
 
     g_string_append(line, "\n");
 
-    g_string_append(line, " user   ");
+    g_string_append(line, " user   ,");
 
     double l1_dmiss_rate_user = ((double) l1_dmisses_user) / (l1_daccess_user) * 100.0;
     double l1_imiss_rate_user = ((double) l1_imisses_user) / (l1_iaccess_user) * 100.0;
@@ -647,15 +645,15 @@ static void append_stats_line(GString *line,
                            l1_imiss_rate_user);
 
 
-    g_string_append_printf(line, "  %-12lu %-11lu %10.4lf%%",
+    g_string_append_printf(line, "  %-12lu, %-11lu, %10.4lf%%",
                            l2_daccess_user,
                            l2_dmisses_user,
                            l2_dmiss_rate_user);
-    g_string_append_printf(line, "  %-12lu %-11lu %10.4lf%%",
+    g_string_append_printf(line, "  %-12lu, %-11lu, %10.4lf%%",
                            l2_iaccess_user,
                            l2_imisses_user,
                            l2_imiss_rate_user);
-    g_string_append_printf(line, "  %-12lu %-11lu %10.4lf%%",
+    g_string_append_printf(line, "  %-12lu, %-11lu, %10.4lf%%",
                            l2_access_user,
                            l2_misses_user,
                            l2_miss_rate_user);

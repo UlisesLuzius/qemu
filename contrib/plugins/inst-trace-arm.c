@@ -24,7 +24,6 @@ static bool sys;
 typedef struct {
     uint64_t pc_phys;
     size_t n_insns;
-
     uint32_t *insn_bytes;
 } InsnData;
 
@@ -74,7 +73,8 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
     data = g_hash_table_lookup(eg_hashtable, GUINT_TO_POINTER(haddr));
     if (data == NULL) {
         data = g_new0(InsnData, 1);
-        data->pc_phys = haddr;
+        bool is_user = qemu_plugin_is_userland(insn);
+        data->pc_phys = haddr | (size_t) is_user << 63;
         data->n_insns = n_insns;
         data->insn_bytes = calloc(n_insns, sizeof(uint32_t));
         memcpy(data->insn_bytes, (uint32_t *) haddr, n_insns);

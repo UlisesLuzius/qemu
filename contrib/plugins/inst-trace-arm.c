@@ -51,7 +51,7 @@ static void vcpu_tb_exec(unsigned int cpu_index, void *udata)
         fwrite(insn_data, sizeof(uint64_t) + sizeof(size_t), 1, fp[0]);
         fwrite(insn_data->insn_bytes, sizeof(uint32_t)*n_insns, 1, fp[0]);
         tot_insn += insn_data->n_insns;
-        if(tot_insn % 1000000000) {
+        if((tot_insn % 1000000000)==0) {
             g_autoptr(GString) rep = g_string_new("tot_insn:");
             g_string_append_printf(rep, "%016ld\n", tot_insn); 
             qemu_plugin_outs(rep->str);

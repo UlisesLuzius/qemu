@@ -84,9 +84,12 @@ static int64_t icount_get_executed(CPUState *cpu)
  * account executed instructions. This is done by the TCG vCPU
  * thread so the main-loop can see time has moved forward.
  */
+static uint64_t tot_icount = 0;
 static void icount_update_locked(CPUState *cpu)
 {
     int64_t executed = icount_get_executed(cpu);
+    tot_icount += executed;
+    printf("curr_count:%016lu\n", tot_icount);
     cpu->icount_budget -= executed;
 
     qatomic_set_i64(&timers_state.qemu_icount,

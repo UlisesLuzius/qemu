@@ -78,7 +78,6 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
         data->n_insns = n_insns;
         data->insn_bytes = calloc(n_insns, sizeof(uint32_t));
         memcpy(data->insn_bytes, (uint32_t *) haddr, n_insns);
-
         g_hash_table_insert(eg_hashtable, GUINT_TO_POINTER(haddr),
                             (gpointer) data);
     }
@@ -111,6 +110,7 @@ static void plugin_exit(qemu_plugin_id_t id, void *p)
 static void hashtable_data_free(gpointer data)
 {
     InsnData *data_ptr = (InsnData *) data;
+    g_free(data_ptr->insn_bytes);
     g_free(data_ptr);
 }
 

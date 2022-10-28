@@ -29,6 +29,7 @@ NAMES += cache-inclusive-parallel-4-7
 NAMES += empty-callback
 NAMES += byte-size-dist
 NAMES += byte-size-dist-1
+NAMES += inst-trace-arm
 
 
 SONAMES := $(addsuffix .so,$(addprefix lib,$(NAMES)))

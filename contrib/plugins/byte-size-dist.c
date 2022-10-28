@@ -70,7 +70,8 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
     for (i = 0; i < n_insns; i++) {
         struct qemu_plugin_insn *insn = qemu_plugin_tb_get_insn(tb, i);
         size_t bytesize = qemu_plugin_insn_size(insn);
-        bool is_nop = (strcmp(qemu_plugin_insn_symbol(insn), "nop") == 0);
+        const char *symbol = qemu_plugin_insn_symbol(insn);
+        bool is_nop = symbol ? (g_strcmp0(symbol, "nop") == 0) : false;
         bool is_user = qemu_plugin_is_userland(insn);
         size_t encoded = is_user << 16 | is_nop << 17 | bytesize;
         qemu_plugin_register_vcpu_insn_exec_cb(insn, vcpu_insn_exec,

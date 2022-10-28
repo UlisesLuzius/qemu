@@ -41,15 +41,15 @@ static GHashTable *eg_hashtable;
 
 static long tot_insn = 0;
 
-FILE *fp[8];
+FILE *fp;
 
 static void vcpu_tb_exec(unsigned int cpu_index, void *udata)
 {
     InsnData *insn_data = (InsnData *) udata;
     if (cpu_index == 1) {
         size_t n_insns = insn_data->n_insns;
-        fwrite(insn_data, sizeof(uint64_t) + sizeof(size_t), 1, fp[0]);
-        fwrite(insn_data->insn_bytes, sizeof(uint32_t)*n_insns, 1, fp[0]);
+        fwrite(insn_data, sizeof(uint64_t) + sizeof(size_t), 1, fp);
+        fwrite(insn_data->insn_bytes, sizeof(uint32_t)*n_insns, 1, fp);
         tot_insn += insn_data->n_insns;
         if((tot_insn % 1000000000) <= insn_data->n_insns) {
             g_autoptr(GString) rep = g_string_new("tot_insn:");
@@ -100,7 +100,7 @@ static void plugin_exit(qemu_plugin_id_t id, void *p)
     g_free(eg_locks_2);
 
     for (int i = 0; i < 8; i++) {
-        fclose(fp[i]);
+        fclose(fp);
     }
 
     g_hash_table_destroy(eg_hashtable);
@@ -147,11 +147,8 @@ int qemu_plugin_install(qemu_plugin_id_t id, const qemu_info_t *info,
         abort();
     }
 
-    for (int i = 0; i < 8; i++) {
-        g_autoptr(GString) path = g_string_new("insn-trace-arm.");
-        g_string_append_printf(path, "%i", i);
-        fp[i] = fopen(path->str, "w");
-    }
+    g_autoptr(GString) path = g_string_new("insn-trace-arm");
+    fp = fopen(path->str, "w");
 
     eg_locks_1 = g_new0(GMutex, cores);
     eg_locks_2 = g_new0(GMutex, cores);

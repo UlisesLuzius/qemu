@@ -50,9 +50,9 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *encoded)
             for(int insnSize = 0; insnSize < 16; insnSize++) {
                 tot_insn += byteSizeDist[0][cpu][insnSize] + byteSizeDist[1][cpu][insnSize];
                 tot_user += byteSizeDist[0][cpu][insnSize];
-                g_string_append_printf(rep, "%u,%u,%016ld,%016ld\n", 
+                g_string_append_printf(rep, "%u,%u,%016ld,%016ld,\n", 
                                    cpu, insnSize, byteSizeDist[0][cpu][insnSize],
-                                   byteSizeDist[1][cpu][insnSize], byteSizeDist);
+                                   byteSizeDist[1][cpu][insnSize]);
             }
             double user_ratio = ((double) tot_user) / tot_insn * 100.0;
             g_string_append_printf(rep, "user/kernel,%i,%10.4lf\n", cpu, user_ratio);

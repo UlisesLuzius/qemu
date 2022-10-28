@@ -89,7 +89,9 @@ static void icount_update_locked(CPUState *cpu)
 {
     int64_t executed = icount_get_executed(cpu);
     tot_icount += executed;
-    printf("curr_count:%016lu\n", tot_icount);
+    if((tot_icount % 100000000) <= executed) {
+        printf("curr_count:%016lu\n", tot_icount);
+    }
     cpu->icount_budget -= executed;
 
     qatomic_set_i64(&timers_state.qemu_icount,

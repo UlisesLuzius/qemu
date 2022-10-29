@@ -92,10 +92,10 @@ static void icount_update_locked(CPUState *cpu)
 
     qatomic_set_i64(&timers_state.qemu_icount,
                     timers_state.qemu_icount + executed);
-    int64_t curr_timer = qatomic_read_i64(&timers_state.qemu_icount);
-    if((curr_timer % 100000000) <= executed) {
-        printf("curr_count:%016lu\n", curr_timer);
-    }
+    // int64_t curr_timer = qatomic_read_i64(&timers_state.qemu_icount);
+    // if((curr_timer % 100000000) <= executed) {
+    //     printf("curr_count:%016lu\n", curr_timer);
+    // }
 }
 
 /*

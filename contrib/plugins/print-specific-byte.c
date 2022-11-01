@@ -25,6 +25,7 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *encoded)
     uint8_t *addr = (uint8_t *) ((uint64_t) encoded & ~(0xFL << 60));
     uint64_t bytesize = (uint64_t) encoded >> 60;
     g_autoptr(GString) rep = g_string_new("");
+    g_string_append_printf(rep, "%lu:", bytesize);
     for(int byte = 0; byte < bytesize; byte++) {
         g_string_append_printf(rep, " %02x", addr[byte]);
     }
@@ -41,13 +42,15 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
     uint64_t basic_block_addr = (uint64_t) qemu_plugin_insn_haddr(insn);
     bool is_user = qemu_plugin_is_userland(insn);
     n_insns = qemu_plugin_tb_n_insns(tb);
-    for (i = 0; i < n_insns; i++) {
-        struct qemu_plugin_insn *insn = qemu_plugin_tb_get_insn(tb, i);
-        size_t bytesize = qemu_plugin_insn_size(insn);
-        uint64_t encoded = bytesize << 60 | basic_block_addr;
-        if(!is_user && bytesize == 2) {
-            qemu_plugin_register_vcpu_insn_exec_cb(insn, vcpu_insn_exec,
-                                                   QEMU_PLUGIN_CB_NO_REGS, (void *) encoded);
+    if (n_insns < 4) {
+        for (i = 0; i < n_insns; i++) {
+            struct qemu_plugin_insn *insn = qemu_plugin_tb_get_insn(tb, i);
+            size_t bytesize = qemu_plugin_insn_size(insn);
+            uint64_t encoded = bytesize << 60 | basic_block_addr;
+            if(!is_user && bytesize == 2) {
+                qemu_plugin_register_vcpu_insn_exec_cb(insn, vcpu_insn_exec,
+                                                       QEMU_PLUGIN_CB_NO_REGS, (void *) encoded);
+            }
         }
     }
 }

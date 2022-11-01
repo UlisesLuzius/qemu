@@ -17,17 +17,14 @@
 #define STRTOLL(x) g_ascii_strtoll(x, NULL, 10)
 
 QEMU_PLUGIN_EXPORT int qemu_plugin_version = QEMU_PLUGIN_VERSION;
-
-static int cores = 0;
-static size_t totInsn = 0;
-static size_t byteSizeDist[2][32][16] = {0};
-static size_t totalNops[2][32] = {0};
+int cores = 0;
 
 static void vcpu_insn_exec(unsigned int vcpu_index, void *encoded)
 {
-    const char *symbol_ptr = (const char *) encoded;
+    if(vcpu_index != 1) {return;}
+    const char *symbol = (const char *) encoded;
     g_autoptr(GString) rep = g_string_new("inst");
-    g_string_append_printf(rep, " (%s)", insn->symbol);
+    g_string_append_printf(rep, " (%s)", symbol);
     qemu_plugin_outs(rep->str);
 }
 

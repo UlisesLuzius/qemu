@@ -28,7 +28,7 @@ NAMES += cache-inclusive-parallel-1
 NAMES += cache-inclusive-parallel-4-7
 NAMES += empty-callback
 NAMES += byte-size-dist
-NAMES += print-specific-byte.c
+NAMES += print-specific-byte
 NAMES += byte-size-dist-1
 NAMES += inst-trace-arm
 

@@ -22,9 +22,11 @@ int cores = 0;
 static void vcpu_insn_exec(unsigned int vcpu_index, void *encoded)
 {
     if(vcpu_index != 1) {return;}
-    const char *symbol = (const char *) encoded;
+    uint16_t bytecode = (uint16_t) encoded;
+    uint8_t bytecode1 = bytecode & 0xFF;
+    uint8_t bytecode2 = (bytecode >> 8) & 0xFF;
     g_autoptr(GString) rep = g_string_new("inst");
-    g_string_append_printf(rep, " (%s)", symbol);
+    g_string_append_printf(rep, " %02x %02x", bytecode1, bytecode2);
     qemu_plugin_outs(rep->str);
 }
 
@@ -37,11 +39,12 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
     for (i = 0; i < n_insns; i++) {
         struct qemu_plugin_insn *insn = qemu_plugin_tb_get_insn(tb, i);
         size_t bytesize = qemu_plugin_insn_size(insn);
-        const char *symbol = qemu_plugin_insn_symbol(insn);
+        uint64_t addr = (uint64_t) qemu_plugin_insn_haddr(insn);
+        uint16_t bytecode = *(uint16_t *) addr;
         bool is_user = qemu_plugin_is_userland(insn);
-        if(!is_user && bytesize == 2 && symbol) {
+        if(!is_user && bytesize == 2) {
             qemu_plugin_register_vcpu_insn_exec_cb(insn, vcpu_insn_exec,
-                                                   QEMU_PLUGIN_CB_NO_REGS, (void *) symbol);
+                                                   QEMU_PLUGIN_CB_NO_REGS, (void *) bytecode);
         }
     }
 }

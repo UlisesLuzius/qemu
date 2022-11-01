@@ -22,11 +22,9 @@ int cores = 0;
 static void vcpu_insn_exec(unsigned int vcpu_index, void *encoded)
 {
     if(vcpu_index != 1) {return;}
-    uint16_t bytecode = (uint16_t) encoded;
-    uint8_t bytecode1 = bytecode & 0xFF;
-    uint8_t bytecode2 = (bytecode >> 8) & 0xFF;
+    uint64_t bytecode = (uint64_t) encoded;
     g_autoptr(GString) rep = g_string_new("");
-    g_string_append_printf(rep, " %02x %02x\n", bytecode1, bytecode2);
+    g_string_append_printf(rep, " %016lx\n", bytecode);
     qemu_plugin_outs(rep->str);
 }
 
@@ -40,7 +38,7 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
         struct qemu_plugin_insn *insn = qemu_plugin_tb_get_insn(tb, i);
         size_t bytesize = qemu_plugin_insn_size(insn);
         uint64_t addr = (uint64_t) qemu_plugin_insn_haddr(insn);
-        uint16_t bytecode = *(uint16_t *) addr;
+        uint64_t bytecode = *(uint64_t *) addr;
         bool is_user = qemu_plugin_is_userland(insn);
         if(!is_user && bytesize == 2) {
             qemu_plugin_register_vcpu_insn_exec_cb(insn, vcpu_insn_exec,

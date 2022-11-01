@@ -25,8 +25,8 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *encoded)
     uint16_t bytecode = (uint16_t) encoded;
     uint8_t bytecode1 = bytecode & 0xFF;
     uint8_t bytecode2 = (bytecode >> 8) & 0xFF;
-    g_autoptr(GString) rep = g_string_new("inst");
-    g_string_append_printf(rep, " %02x %02x", bytecode1, bytecode2);
+    g_autoptr(GString) rep = g_string_new("");
+    g_string_append_printf(rep, " %02x %02x\n", bytecode1, bytecode2);
     qemu_plugin_outs(rep->str);
 }
 

@@ -18,6 +18,7 @@
 
 QEMU_PLUGIN_EXPORT int qemu_plugin_version = QEMU_PLUGIN_VERSION;
 
+static int cores = 0;
 static size_t totInsn = 0;
 static size_t byteSizeDist[2][32][16] = {0};
 static size_t totalNops[2][32] = {0};
@@ -44,7 +45,7 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *encoded)
 #ifdef CONFIG_1
         for(int cpu = 1; cpu < 2; cpu++) {
 #else
-        for(int cpu = 0; cpu < 16; cpu++) {
+        for(int cpu = 0; cpu < cores; cpu++) {
 #endif
             tot_insn = 0;
             tot_user = 0;
@@ -92,6 +93,8 @@ QEMU_PLUGIN_EXPORT
 int qemu_plugin_install(qemu_plugin_id_t id, const qemu_info_t *info,
                         int argc, char **argv)
 {
+    cores = sys ? qemu_plugin_n_vcpus() : 1;
+
     qemu_plugin_register_vcpu_tb_trans_cb(id, vcpu_tb_trans);
     qemu_plugin_register_atexit_cb(id, plugin_exit, NULL);
 

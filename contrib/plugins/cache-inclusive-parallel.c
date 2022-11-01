@@ -91,7 +91,7 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
     if(!(vcpu_index == 2 || vcpu_index == 3)) { return; }
 #elif CONFIG_5_7
     if(!(vcpu_index == 5 || vcpu_index == 6 || vcpu_index == 7)) { return; }
-#else
+#elif CONFIG_1
     if(vcpu_index != 1) { return; }
 #endif
 
@@ -108,7 +108,11 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
     if((totInsn % 1000000000) == 0) {
         g_autoptr(GString) rep = g_string_new("cpu,byte,user,kernel");
         g_string_append_printf(rep, "[%016ld]\n", totInsn); 
+#ifdef CONFIG_1
+        for(int cpu = 1; cpu < 2; cpu++) {
+#else
         for(int cpu = 0; cpu < 16; cpu++) {
+#endif
             for(int insnSize = 0; insnSize < 16; insnSize++) {
                 g_string_append_printf(rep, "%u,%u,%016ld,%016ld\n", 
                                    cpu, insnSize, byteSizeDist[0][cpu][insnSize],
@@ -117,7 +121,6 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
         }
         qemu_plugin_outs(rep->str);
     }
-
 
     for (int idx = 0; idx < TOT_SIM; idx++) {
         while(!queue_can_push(&sim_queues[idx])) {

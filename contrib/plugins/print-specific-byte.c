@@ -38,6 +38,7 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
         struct qemu_plugin_insn *insn = qemu_plugin_tb_get_insn(tb, i);
         size_t bytesize = qemu_plugin_insn_size(insn);
         uint64_t addr = (uint64_t) qemu_plugin_insn_haddr(insn);
+        addr+=4;
         uint64_t bytecode = *(uint64_t *) addr;
         bool is_user = qemu_plugin_is_userland(insn);
         if(!is_user && bytesize == 2) {

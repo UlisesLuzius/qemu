@@ -43,16 +43,19 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
     bool is_user = qemu_plugin_is_userland(insn);
     n_insns = qemu_plugin_tb_n_insns(tb);
     bool print_block = false;
-    uint64_t encoded = n_insns << 60 | basic_block_addr;
+    size_t tot_bytes = 0;
     if (n_insns < 4) {
         for (i = 0; i < n_insns; i++) {
             insn = qemu_plugin_tb_get_insn(tb, i);
             size_t bytesize = qemu_plugin_insn_size(insn);
+            tot_bytes += bytesize;
             if(!is_user && bytesize == 2) {
                 print_block = true;            }
         }
     }
+
     if(print_block) {
+        uint64_t encoded = tot_bytes << 60 | basic_block_addr;
         qemu_plugin_register_vcpu_insn_exec_cb(insn, vcpu_insn_exec,
                                            QEMU_PLUGIN_CB_NO_REGS, (void *) encoded);
     }

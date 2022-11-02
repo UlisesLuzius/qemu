@@ -56,9 +56,10 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
     uint64_t basic_block_addr = (uint64_t) qemu_plugin_insn_haddr(insn);
     bool is_user = qemu_plugin_is_userland(insn);
     n_insns = qemu_plugin_tb_n_insns(tb);
-    bool print_block = true;
+    bool print_block = false;
     size_t tot_bytes = 0;
     if (!is_user) {
+        print_block = true;
         for (i = 0; i < n_insns; i++) {
             insn = qemu_plugin_tb_get_insn(tb, i);
             size_t bytesize = qemu_plugin_insn_size(insn);

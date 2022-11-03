@@ -30,7 +30,9 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *encoded)
     bool is_user = ((size_t) encoded & 1l << 59);
     uint64_t haddr = ((uint64_t) encoded & ~(0xFFl << 56));
     if(haddr == last_haddr) {
-        printf("byte:%x", *(uint16_t *)haddr);
+        g_autoptr(GString) rep = g_string_new("repz");
+        g_string_append_printf(rep,"byte:%x\n", *(uint16_t *)haddr);
+        qemu_plugin_outs(rep->str);
         return;
     }
     last_haddr = haddr;

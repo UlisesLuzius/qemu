@@ -86,10 +86,11 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
     for (i = 0; i < n_insns; i++) {
         struct qemu_plugin_insn *insn = qemu_plugin_tb_get_insn(tb, i);
         size_t bytesize = qemu_plugin_insn_size(insn);
+        uint64_t haddr = (uint64_t) qemu_plugin_insn_haddr(insn);
 //        const char *symbol = qemu_plugin_insn_symbol(insn);
 //        bool is_nop = false;
         uint64_t is_user = qemu_plugin_is_userland(insn);
-        size_t encoded = is_user << 59 | bytesize;
+        size_t encoded = is_user << 59 | bytesize | haddr;
         qemu_plugin_register_vcpu_insn_exec_cb(insn, vcpu_insn_exec,
                                                QEMU_PLUGIN_CB_NO_REGS, (void *) encoded);
     }

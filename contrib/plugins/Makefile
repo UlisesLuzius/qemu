@@ -30,6 +30,7 @@ NAMES += empty-callback
 NAMES += byte-size-dist
 NAMES += print-specific-byte
 NAMES += byte-size-dist-1
+NAMES += byte-size-dist-1-3
 NAMES += inst-trace-arm
 
 
@@ -76,6 +77,12 @@ byte-size-dist-1.o : byte-size-dist.c
 
 libbyte-size-dist-1.so: byte-size-dist-1.o
 	$(CC) -shared -DCONFIG_1 -Wl,-soname,$@ -o $@ $^ $(LDLIBS)
+
+byte-size-dist-1-3.o : byte-size-dist.c
+	$(CC) $(CFLAGS) -DCONFIG_1_3 -c -o $@ $<
+
+libbyte-size-dist-1-3.so: byte-size-dist-1-3.o
+	$(CC) -shared -DCONFIG_1_3 -Wl,-soname,$@ -o $@ $^ $(LDLIBS)
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<

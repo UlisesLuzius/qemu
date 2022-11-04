@@ -76,7 +76,7 @@ static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
         data->pc_phys = haddr | (size_t) is_user << 63;
         data->n_insns = n_insns;
         data->insn_bytes = calloc(n_insns, sizeof(uint32_t));
-        memcpy(data->insn_bytes, (uint32_t *) haddr, n_insns);
+        memcpy(data->insn_bytes, (uint32_t *) haddr, n_insns*sizeof(uint32_t));
         g_hash_table_insert(eg_hashtable, GUINT_TO_POINTER(haddr),
                             (gpointer) data);
     }

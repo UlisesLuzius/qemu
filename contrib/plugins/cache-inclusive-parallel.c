@@ -48,6 +48,9 @@ typedef struct {
     size_t size;
 } InsnData;
 
+static uint64_t last_haddr = 0;
+
+
 static void vcpu_mem_access(unsigned int vcpu_index, qemu_plugin_meminfo_t info,
                             uint64_t vaddr, void *userdata)
 {
@@ -95,9 +98,14 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
     if(vcpu_index != 1) { return; }
 #endif
 
+ 
     size_t byteSize = ((InsnData *) userdata)->size;
     uint64_t haddr = ((InsnData *) userdata)->addr;
     bool is_user = ((InsnData *) userdata)->is_user;
+
+    if(haddr == last_haddr) { return; }
+    last_haddr = haddr;
+
     if(is_user) {
         byteSizeDist[0][vcpu_index][byteSize]++;
     } else {

@@ -77,6 +77,7 @@ fn main() -> Result<(), io::Error> {
 
     let mut s = String::new();
     if arch == "x86" {
+        println!("Logging X86:");
         let cs = Capstone::new()
             .x86()
             .mode(arch::x86::ArchMode::Mode64)
@@ -88,7 +89,7 @@ fn main() -> Result<(), io::Error> {
             io::stdin().read_line(&mut s).unwrap();
             let t = get_next_trace_x86(&mut buf);
 
-            println!("PC: {}, instruction count: {}", t.p_pc, t.n_insts);
+            println!("PC: {:#016x}, instruction count: {}", t.p_pc, t.n_insts);
             let d = cs.disasm_all(&t.insts_bytes, 0).unwrap();
             for l in d.iter() {
                 println!("{}", l);
@@ -96,6 +97,7 @@ fn main() -> Result<(), io::Error> {
             println!("--------------------");
         }
     } else {
+        println!("Logging ARM:");
         let cs = Capstone::new()
             .arm64()
             .mode(arch::arm64::ArchMode::Arm)
@@ -107,7 +109,7 @@ fn main() -> Result<(), io::Error> {
             io::stdin().read_line(&mut s).unwrap();
             let t = get_next_trace_arm(&mut buf);
 
-            println!("PC: {}, instruction count: {}", t.p_pc, t.n_insts);
+            println!("PC: {:#016x}, instruction count: {}", t.p_pc, t.n_insts);
 
             for inst in t.insts.iter() {
                 println!("{}", inst);

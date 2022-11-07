@@ -6,12 +6,14 @@ use capstone::prelude::*;
 pub struct TraceEntryARM {
     pub p_pc :u64,
     pub n_insts: usize,
+    pub is_user: bool,
     pub insts: Vec<u32>
 }
 
 pub struct TraceEntryX86 {
     pub p_pc: u64,
     pub n_insts: usize,
+    pub is_user: bool,
     pub insts_bytes: Vec<u8>
 }
 
@@ -30,6 +32,8 @@ pub fn get_next_trace_arm(f: &mut BufReader::<fs::File>) -> TraceEntryARM {
     f.read_exact(&mut buf_n_bytes).unwrap();
     let n_bytes: usize = u16::from_le_bytes(buf_n_bytes) as usize;
 
+    let is_user = (p_pc & (1 << 63)) != 0;
+
     // 3. read the instruction one by one.
     let mut insts = Vec::with_capacity(n_insts);
     for _ in 0..n_insts {
@@ -39,7 +43,7 @@ pub fn get_next_trace_arm(f: &mut BufReader::<fs::File>) -> TraceEntryARM {
     }
     assert!(n_bytes == n_insts * 4);
 
-    return TraceEntryARM { p_pc, n_insts, insts };
+    return TraceEntryARM { p_pc, n_insts, is_user, insts };
 }
 
 pub fn get_next_trace_x86(f: &mut BufReader::<fs::File>) -> TraceEntryX86 {
@@ -59,6 +63,8 @@ pub fn get_next_trace_x86(f: &mut BufReader::<fs::File>) -> TraceEntryX86 {
 
     let mut insts_bytes: Vec<u8> = Vec::with_capacity(n_bytes);
 
+    let is_user = (p_pc & (1 << 63)) != 0;
+
     // 3. read the instruction one by one.
     // let mut handle = f.take(n_bytes as u64);
     // handle.read(&mut insts_bytes);
@@ -68,7 +74,7 @@ pub fn get_next_trace_x86(f: &mut BufReader::<fs::File>) -> TraceEntryX86 {
         insts_bytes.push(u8::from_le_bytes(buf));
     }
 
-    return TraceEntryX86 { p_pc, n_insts, insts_bytes };
+    return TraceEntryX86 { p_pc, n_insts, is_user, insts_bytes };
 }
 
 fn main() -> Result<(), io::Error> {
@@ -94,7 +100,7 @@ fn main() -> Result<(), io::Error> {
             io::stdin().read_line(&mut s).unwrap();
             let t = get_next_trace_x86(&mut buf);
 
-            println!("PC: {:#016x}, instruction count: {}", t.p_pc, t.n_insts);
+            println!("PC: {:#016x}, is_user: {}, instruction count: {}", t.p_pc, t.is_user, t.n_insts);
             let d = cs.disasm_all(&t.insts_bytes, 0).unwrap();
             for l in d.iter() {
                 println!("{}", l);
@@ -114,7 +120,7 @@ fn main() -> Result<(), io::Error> {
             io::stdin().read_line(&mut s).unwrap();
             let t = get_next_trace_arm(&mut buf);
 
-            println!("PC: {:#016x}, instruction count: {}", t.p_pc, t.n_insts);
+            println!("PC: {:#016x}, is_user: {}, instruction count: {}", t.p_pc, t.is_user, t.n_insts);
 
             for inst in t.insts.iter() {
                 println!("{}", inst);

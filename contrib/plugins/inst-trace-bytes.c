@@ -45,6 +45,9 @@ static long tot_insn = 0;
 static uint64_t last_haddr = 0;
 
 FILE *fp;
+#ifdef CONFIG_3
+FILE *fp3;
+#endif
 
 static void vcpu_tb_exec(unsigned int cpu_index, void *udata)
 {
@@ -63,6 +66,22 @@ static void vcpu_tb_exec(unsigned int cpu_index, void *udata)
             qemu_plugin_outs(rep->str);
         }
     }
+#ifdef CONFIG_3
+    if (cpu_index == 3) {
+        uint64_t haddr = insn_data->pc_phys;
+        if(haddr == last_haddr) { return; }
+        last_haddr = haddr;
+
+        fwrite(insn_data, sizeof(uint64_t) + sizeof(uint16_t) + sizeof(uint16_t), 1, fp3);
+        fwrite(insn_data->insn_bytes, sizeof(uint8_t), insn_data->n_bytes, fp3);
+        tot_insn += insn_data->n_insns;
+        if((tot_insn % 1000000000) <= insn_data->n_insns) {
+            g_autoptr(GString) rep = g_string_new("tot_insn:");
+            g_string_append_printf(rep, "%016ld\n", tot_insn); 
+            qemu_plugin_outs(rep->str);
+        }
+    }
+#endif
 }
 
 static void vcpu_tb_trans(qemu_plugin_id_t id, struct qemu_plugin_tb *tb)
@@ -160,6 +179,12 @@ int qemu_plugin_install(qemu_plugin_id_t id, const qemu_info_t *info,
 
     g_autoptr(GString) path = g_string_new("insn-trace-arm");
     fp = fopen(path->str, "w");
+
+#ifdef CONFIG_3
+    g_autoptr(GString) path3 = g_string_new("insn-trace-arm.3");
+    fp3 = fopen(path->str, "w");
+#endif
+
 
     eg_locks_1 = g_new0(GMutex, cores);
     eg_locks_2 = g_new0(GMutex, cores);

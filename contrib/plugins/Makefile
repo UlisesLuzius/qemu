@@ -33,6 +33,7 @@ NAMES += byte-size-dist-1
 NAMES += byte-size-dist-1-3
 NAMES += inst-trace-arm
 NAMES += inst-trace-bytes
+NAMES += inst-trace-bytes-3
 
 
 SONAMES := $(addsuffix .so,$(addprefix lib,$(NAMES)))
@@ -84,6 +85,14 @@ byte-size-dist-1-3.o : byte-size-dist.c
 
 libbyte-size-dist-1-3.so: byte-size-dist-1-3.o
 	$(CC) -shared -DCONFIG_1_3 -Wl,-soname,$@ -o $@ $^ $(LDLIBS)
+
+
+inst-trace-bytes-3.o : inst-trace-bytes.c
+	$(CC) $(CFLAGS) -DCONFIG_3 -c -o $@ $<
+
+inst-trace-bytes-3.so: byte-size-dist-3.o
+	$(CC) -shared -DCONFIG_3 -Wl,-soname,$@ -o $@ $^ $(LDLIBS)
+
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c -o $@ $<

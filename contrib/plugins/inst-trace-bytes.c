@@ -182,7 +182,7 @@ int qemu_plugin_install(qemu_plugin_id_t id, const qemu_info_t *info,
 
 #ifdef CONFIG_3
     g_autoptr(GString) path3 = g_string_new("insn-trace-arm.3");
-    fp3 = fopen(path->str, "w");
+    fp3 = fopen(path3->str, "w");
 #endif
 
 

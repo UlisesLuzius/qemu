@@ -60,8 +60,13 @@ pub fn get_next_trace_x86(f: &mut BufReader::<fs::File>) -> TraceEntryX86 {
     let mut insts_bytes: Vec<u8> = Vec::with_capacity(n_bytes);
 
     // 3. read the instruction one by one.
-    let mut handle = f.take(n_bytes as u64);
-    handle.read(&mut insts_bytes);
+    // let mut handle = f.take(n_bytes as u64);
+    // handle.read(&mut insts_bytes);
+    for _ in 0..n_bytes {
+        let mut buf = [0u8; 1];
+        f.read_exact(&mut buf).unwrap();
+        insts_bytes.push(u8::from_le_bytes(buf));
+    }
 
     return TraceEntryX86 { p_pc, n_insts, insts_bytes };
 }

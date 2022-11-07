@@ -25,7 +25,7 @@ typedef struct {
     uint64_t pc_phys;
     uint16_t n_insns;
     uint16_t n_bytes;
-    uint32_t *insn_bytes;
+    uint8_t *insn_bytes;
 } InsnData;
 
 enum OpExample {

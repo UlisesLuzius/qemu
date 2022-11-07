@@ -42,12 +42,18 @@ static GHashTable *eg_hashtable;
 
 static long tot_insn = 0;
 
+static uint64_t last_haddr = 0;
+
 FILE *fp;
 
 static void vcpu_tb_exec(unsigned int cpu_index, void *udata)
 {
     InsnData *insn_data = (InsnData *) udata;
     if (cpu_index == 1) {
+        uint64_t haddr = insn_data->pc_phys;
+        if(haddr == last_haddr) { return; }
+        last_haddr = haddr;
+
         fwrite(insn_data, sizeof(uint64_t) + sizeof(uint16_t) + sizeof(uint16_t), 1, fp);
         fwrite(insn_data->insn_bytes, sizeof(uint8_t), insn_data->n_bytes, fp);
         tot_insn += insn_data->n_insns;

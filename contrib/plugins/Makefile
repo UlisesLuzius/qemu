@@ -32,6 +32,7 @@ NAMES += print-specific-byte
 NAMES += byte-size-dist-1
 NAMES += byte-size-dist-1-3
 NAMES += inst-trace-arm
+NAMES += inst-trace-bytes
 
 
 SONAMES := $(addsuffix .so,$(addprefix lib,$(NAMES)))

@@ -100,8 +100,10 @@ fn main() -> Result<(), io::Error> {
 
     let mut buf = BufReader::new(f);
 
+    let mut curr_inst = 0usize;
     let mut s = String::new();
     if arch == "x86" {
+        
         println!("Logging X86:");
         let cs = Capstone::new()
             .x86()
@@ -113,13 +115,20 @@ fn main() -> Result<(), io::Error> {
 //        let mut map : [HashMap<String, u32>; 13] = [HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(),];
         let mut map : HashMap<String, u32> = HashMap::new();
         loop {
+            
             io::stdin().read_line(&mut s).unwrap();
             let t = get_next_trace_x86(&mut buf);
 
-            println!("PC: {:#016x}, is_user: {}, instruction count: {}", t.p_pc, t.is_user, t.n_insts);
+            // println!("PC: {:#016x}, is_user: {}, instruction count: {}", t.p_pc, t.is_user, t.n_insts);
             let d = cs.disasm_all(&t.insts_bytes, 0).unwrap();
             for i in d.iter() {
-                println!("{}", i);
+                //println!("{}", i);
+                if curr_inst % 10000000  == 0 {
+                    for (groups, count) in &map {
+                        println!("{groups:?} has {count} insts");
+                    }
+                }
+                curr_inst += 1usize;
 
                 let detail: InsnDetail = cs.insn_detail(&i).expect("Failed to get insn detail");
                 let arch_detail: ArchDetail = detail.arch_detail();
@@ -142,13 +151,13 @@ fn main() -> Result<(), io::Error> {
 
                 *map.entry(g).or_insert(0) += 1u32;
 
-                println!("{:4}operands: {}", "", ops.len());
-                for op in ops {
-                    println!("{:8}{:?}", "", op);
-                }
+                // println!("{:4}operands: {}", "", ops.len());
+                // for op in ops {
+                //     println!("{:8}{:?}", "", op);
+                // }
 
             }
-            println!("--------------------");
+            // println!("--------------------");
         }
     } else {
         println!("Logging ARM:");
@@ -161,16 +170,24 @@ fn main() -> Result<(), io::Error> {
 
         let mut map : HashMap<String, u32> = HashMap::new();
         loop {
-            io::stdin().read_line(&mut s).unwrap();
+            // io::stdin().read_line(&mut s).unwrap();
             let t = get_next_trace_arm(&mut buf);
 
-            println!("PC: {:#016x}, is_user: {}, instruction count: {}", t.p_pc, t.is_user, t.n_insts);
+            // println!("PC: {:#016x}, is_user: {}, instruction count: {}", t.p_pc, t.is_user, t.n_insts);
 
             for inst in t.insts.iter() {
-                println!("{}", inst);
+                // println!("{}", inst);
                 let d = cs.disasm_all(&inst.to_le_bytes(), 0).unwrap();
                 for i in d.iter() {
-                    println!("{}", i);
+                    // println!("{}", i);
+                    if curr_inst % 10000000 == 0 {
+                        for (groups, count) in &map {
+                            println!("{groups:?} has {count} insts");
+                        }
+                    }
+                    curr_inst += 1usize;
+
+
 
                     let detail: InsnDetail = cs.insn_detail(&i).expect("Failed to get insn detail");
                     let arch_detail: ArchDetail = detail.arch_detail();
@@ -178,6 +195,7 @@ fn main() -> Result<(), io::Error> {
 
                     let g = group_names(&cs, detail.groups());
                     *map.entry(g).or_insert(0) += 1u32;
+
                     // let output: &[(&str, String)] = &[
                     //     ("insn id:", format!("{:?}", i.id().0)),
                     //     ("bytes:", format!("{:?}", i.bytes())),
@@ -190,13 +208,13 @@ fn main() -> Result<(), io::Error> {
                     //     println!("{:4}{:12} {}", "", name, message);
                     // }
 
-                    println!("{:4}operands: {}", "", ops.len());
-                    for op in ops {
-                        println!("{:8}{:?}", "", op);
-                    }
+                    // println!("{:4}operands: {}", "", ops.len());
+                    // for op in ops {
+                    //     println!("{:8}{:?}", "", op);
+                    // }
                 }
             }
-            println!("--------------------");
+            // println!("--------------------");
         }
     }
 

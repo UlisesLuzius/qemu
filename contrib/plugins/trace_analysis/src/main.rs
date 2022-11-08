@@ -322,7 +322,7 @@ fn main() -> Result<(), io::Error> {
 
                 Breakdown::update(valueGroup, is_user, byte_len, inst_loads, inst_stores, has_br, has_both_mem, has_mem, has_multi_mem);
                 Breakdown::update(valueByte, is_user, byte_len, inst_loads, inst_stores, has_br, has_both_mem, has_mem, has_multi_mem);
-                Breakdown::update(valueGroup, is_user, byte_len, inst_loads, inst_stores, has_br, has_both_mem, has_mem, has_multi_mem);
+                Breakdown::update(value_mnem, is_user, byte_len, inst_loads, inst_stores, has_br, has_both_mem, has_mem, has_multi_mem);
            }
         }
 

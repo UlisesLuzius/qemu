@@ -150,7 +150,7 @@ fn main() -> Result<(), io::Error> {
 
             let d = cs.disasm_all(&t.insts_bytes, 0).unwrap();
             for i in d.iter() {
-                if curr_inst % 10000000  == 0 {
+                if curr_inst % 1000000  == 0 {
                     println!("Insts[{}]", curr_inst);
                     for (groups, count) in &map {
                         println!("{groups:?},{count}");
@@ -186,7 +186,7 @@ fn main() -> Result<(), io::Error> {
                 let d = cs.disasm_all(&inst.to_le_bytes(), 0).unwrap();
                 for i in d.iter() {
 
-                    if curr_inst % 10000000 == 0 {
+                    if curr_inst % 1000000 == 0 {
                         println!("Insts[{}]", curr_inst);
                         for (groups, count) in &map {
                             println!("{groups:?},{count}");

@@ -211,8 +211,9 @@ fn main() -> Result<(), io::Error> {
             let d = cs.disasm_all(&t.insts_bytes, 0).unwrap();
 
             for i in d.iter() {
-                if curr_inst % 10000000 == 0 {
+                if curr_inst % 1000000 == 0 {
                     println!("Insts[{}]", curr_inst);
+
                     println!("Groups:");
                     for (groups, breakdown) in &map {
                         println!("{groups:?},{:?}", breakdown);

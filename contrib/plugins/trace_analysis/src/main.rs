@@ -218,11 +218,11 @@ fn main() -> Result<(), io::Error> {
                         println!("{groups:?},{:?}", breakdown);
                     }
                     println!("Mem Bytes:");
-                    for (groups, breakdown) in &map_mnem {
+                    for (groups, breakdown) in &map_bytes {
                         println!("{groups:?},{:?}", breakdown);
                     }
                     println!("Mnemonic:");
-                    for (groups, breakdown) in &map_bytes {
+                    for (groups, breakdown) in &map_mnem {
                         println!("{groups:?},{:?}", breakdown);
                     }
                 }

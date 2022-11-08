@@ -1,7 +1,11 @@
 use std::fs;
 use std::io::{self, BufReader, Read};
 
-use capstone::prelude::*;
+use capstone::arch::arm::ArmOperandType;
+use capstone::arch::arm64::{Arm64Operand, Arm64InsnDetail, Arm64OpMem};
+use capstone::arch::x86::{X86Operand, X86InsnDetail, X86OpMem, X86OperandType};
+use capstone::arch::x86::X86OperandType::*;
+use capstone::{prelude::*, RegAccessType};
 use std::collections::HashMap;
 
 pub struct TraceEntryARM {
@@ -18,20 +22,73 @@ pub struct TraceEntryX86 {
     pub insts_bytes: Vec<u8>
 }
 
+#[derive(Debug)]
 pub struct Breakdown {
     pub tot: usize,
     pub user: usize,
     pub sys: usize,
-    pub with_load: usize,
-    pub with_store: usize,
+
+    // Standard
+    pub tot_load: usize,
+    pub tot_store: usize,
+    pub with_br: usize,
+    pub with_sse: usize,
+    pub with_crypto: usize,
+
+    // Freak cases
+    pub with_both: usize,
+    pub mem_branch: usize,
+    pub has_multi_mem: usize,
+
     pub byte_sizes: [usize; 13]
+
+    
+}
+
+impl Breakdown {
+    fn update (value: &mut Breakdown, is_user: bool, byte_len: usize, 
+                        inst_loads: usize, inst_stores: usize, 
+                        has_br: bool, has_both_mem: bool,
+                        has_mem: bool, has_multi_mem: bool) {
+        value.tot += 1;
+        value.byte_sizes[byte_len] += 1;
+
+        if is_user {
+            value.user += 1;
+        } else { 
+            value.sys += 1;
+        }
+
+        value.tot_load += inst_loads;
+        value.tot_store += inst_stores;
+
+        if has_br {
+            value.with_br += 1;
+        }
+
+        if has_both_mem {
+            value.with_both += 1;
+        }
+
+        if has_multi_mem {
+            value.has_multi_mem += 1;
+        }
+
+        if has_mem && has_br {
+            value.mem_branch += 1;
+        }
+    }
 }
 
 impl Default for Breakdown {
     fn default () -> Breakdown{
-        Breakdown{tot: 0, user: 0, sys:0, with_load: 0, with_store: 0, byte_sizes: [0usize; 13]}
+        Breakdown{tot: 0, user: 0, sys:0, 
+            tot_load: 0, tot_store: 0, with_br: 0, with_sse: 0, with_crypto: 0, 
+            with_both: 0, mem_branch: 0, has_multi_mem: 0, byte_sizes: [0usize; 13]}
     }
+    
 }
+
 
 /// Print register names
 fn reg_names(cs: &Capstone, regs: &[RegId]) -> String {
@@ -41,7 +98,7 @@ fn reg_names(cs: &Capstone, regs: &[RegId]) -> String {
 
 /// Print instruction group names
 fn group_names(cs: &Capstone, regs: &[InsnGroupId]) -> String {
-    let mut names: Vec<String> = regs.iter().map(|&x| cs.group_name(x).unwrap()).collect();
+    let mut names: Vec<String> = regs.iter().map(|&x| cs.group_name(x).unwrap()).filter(|s| !s.starts_with("mode")).collect();
     names.sort();
     names.join(", ")
 }
@@ -132,7 +189,9 @@ fn main() -> Result<(), io::Error> {
     let mut buf = BufReader::new(f);
 
     let mut curr_inst = 0usize;
-    let mut s = String::new();
+    let mut map : HashMap<String, Breakdown> = HashMap::new();
+    let mut map_mnem : HashMap<String, Breakdown> = HashMap::new();
+    let mut map_bytes : HashMap<usize, Breakdown> = HashMap::new();
     if arch == "x86" {
         
         println!("Logging X86:");
@@ -143,31 +202,110 @@ fn main() -> Result<(), io::Error> {
             .build()
             .unwrap();
 
-        //let mut map : HashMap<String, Breakdown> = HashMap::new();
-        let mut map : HashMap<String, usize> = HashMap::new();
+        let branch_groups = ["jump", "return", "branch_relative", "call"];
+        let sse_groups = ["sse1", "sse2", "sse41", "sse42", "ssse3"];
+        let crypto_groups = ["adx", "aes"];
+
         loop {
             let t = get_next_trace_x86(&mut buf);
-
             let d = cs.disasm_all(&t.insts_bytes, 0).unwrap();
+
             for i in d.iter() {
-                if curr_inst % 1000000  == 0 {
+                if curr_inst % 10000000 == 0 {
                     println!("Insts[{}]", curr_inst);
-                    for (groups, count) in &map {
-                        println!("{groups:?},{count}");
+                    println!("Groups:");
+                    for (groups, breakdown) in &map {
+                        println!("{groups:?},{:?}", breakdown);
+                    }
+                    println!("Mem Bytes:");
+                    for (groups, breakdown) in &map_mnem {
+                        println!("{groups:?},{:?}", breakdown);
+                    }
+                    println!("Mnemonic:");
+                    for (groups, breakdown) in &map_bytes {
+                        println!("{groups:?},{:?}", breakdown);
                     }
                 }
+
                 curr_inst += 1usize;
-
+                
                 let detail: InsnDetail = cs.insn_detail(&i).expect("Failed to get insn detail");
-                let arch_detail: ArchDetail = detail.arch_detail();
-                let ops = arch_detail.operands();
+                let mnemonic = i.mnemonic().unwrap().to_string();
+                let arch_detail = detail.arch_detail();
+                let x86_detail = arch_detail.x86().unwrap();
+                let ops = x86_detail.operands();
 
-                let g: String = group_names(&cs, detail.groups());
+                let g = group_names(&cs, detail.groups());
+                let group = &g.clone();
                 let byte_len = i.bytes().len();
-                //let value = map.entry(g).or_insert(Breakdown::default());
-                *map.entry(g).or_insert(0) += 1usize;
-            }
+
+                let is_user = t.is_user;
+                let mut inst_loads = 0;
+                let mut inst_stores = 0;
+                let mut with_reg = 0;
+
+                for op in ops {
+                    match op.op_type {
+                        X86OperandType::Mem(_) => {
+                            match op.access.unwrap() {
+                                RegAccessType::ReadOnly => inst_loads += 1,
+                                RegAccessType::WriteOnly => inst_stores += 1,
+                                RegAccessType::ReadWrite => {
+                                    inst_loads += 1;
+                                    inst_stores += 1;
+                                },
+                            }
+                        },
+                        X86OperandType::Reg(_) => {
+                            with_reg += 1;
+                        },
+                        _ => (),
+                    }
+                }
+
+                let has_multi_mem = inst_loads + inst_stores >= 2;
+                let has_mem = inst_loads + inst_stores >= 1;
+                let mut has_br = false;
+                let mut has_sse = false;
+                let mut has_crypto = false;
+
+                for cate in branch_groups {
+                    if group.contains(cate) {
+                        has_br = true;
+                    }
+                }
+                for cate in sse_groups {
+                    if group.contains(cate) {
+                        has_sse = true;
+                    }
+                }
+                for cate in crypto_groups{
+                    if group.contains(cate) {
+                        has_crypto = true;
+                    }
+                }
+
+                let has_both_mem = inst_loads >= 1 && inst_stores >= 1;
+
+                let mut groupKey: String = "".to_string();
+                if has_sse {
+                    groupKey = "sse".to_string();
+                } else if has_crypto {
+                    groupKey = "crypto".to_string();
+                } else {
+                    groupKey = group.clone();
+                }
+
+                let valueGroup = map.entry(groupKey).or_insert(Breakdown::default());
+                let valueByte = map_bytes.entry(byte_len).or_insert(Breakdown::default());
+                let value_mnem= map_mnem.entry(mnemonic).or_insert(Breakdown::default());
+
+                Breakdown::update(valueGroup, is_user, byte_len, inst_loads, inst_stores, has_br, has_both_mem, has_mem, has_multi_mem);
+                Breakdown::update(valueByte, is_user, byte_len, inst_loads, inst_stores, has_br, has_both_mem, has_mem, has_multi_mem);
+                Breakdown::update(valueGroup, is_user, byte_len, inst_loads, inst_stores, has_br, has_both_mem, has_mem, has_multi_mem);
+           }
         }
+
     } else {
         println!("Logging ARM:");
         let cs = Capstone::new()
@@ -177,8 +315,6 @@ fn main() -> Result<(), io::Error> {
             .build()
             .unwrap();
 
-        //let mut map : HashMap<String, Breakdown> = HashMap::new();
-        let mut map : HashMap<String, usize> = HashMap::new();
         loop {
             let t = get_next_trace_arm(&mut buf);
 
@@ -186,21 +322,6 @@ fn main() -> Result<(), io::Error> {
                 let d = cs.disasm_all(&inst.to_le_bytes(), 0).unwrap();
                 for i in d.iter() {
 
-                    if curr_inst % 1000000 == 0 {
-                        println!("Insts[{}]", curr_inst);
-                        for (groups, count) in &map {
-                            println!("{groups:?},{count}");
-                        }
-                    }
-                    curr_inst += 1usize;
-
-                    let detail: InsnDetail = cs.insn_detail(&i).expect("Failed to get insn detail");
-                    let arch_detail: ArchDetail = detail.arch_detail();
-                    let ops = arch_detail.operands();
-
-                    let g = group_names(&cs, detail.groups());
-                    //let value = map.entry(g).or_insert(Breakdown::default());
-                    *map.entry(g).or_insert(0) += 1usize;
 
                 }
             }

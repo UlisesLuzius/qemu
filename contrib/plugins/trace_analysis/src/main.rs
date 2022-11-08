@@ -2,6 +2,7 @@ use std::fs;
 use std::io::{self, BufReader, Read};
 
 use capstone::prelude::*;
+use std::collections::HashMap;
 
 pub struct TraceEntryARM {
     pub p_pc :u64,
@@ -25,7 +26,8 @@ fn reg_names(cs: &Capstone, regs: &[RegId]) -> String {
 
 /// Print instruction group names
 fn group_names(cs: &Capstone, regs: &[InsnGroupId]) -> String {
-    let names: Vec<String> = regs.iter().map(|&x| cs.group_name(x).unwrap()).collect();
+    let mut names: Vec<String> = regs.iter().map(|&x| cs.group_name(x).unwrap()).collect();
+    names.sort();
     names.join(", ")
 }
 
@@ -108,6 +110,8 @@ fn main() -> Result<(), io::Error> {
             .build()
             .unwrap();
 
+//        let mut map : [HashMap<String, u32>; 13] = [HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(),];
+        let mut map : HashMap<String, u32> = HashMap::new();
         loop {
             io::stdin().read_line(&mut s).unwrap();
             let t = get_next_trace_x86(&mut buf);
@@ -117,27 +121,31 @@ fn main() -> Result<(), io::Error> {
             for i in d.iter() {
                 println!("{}", i);
 
+                let detail: InsnDetail = cs.insn_detail(&i).expect("Failed to get insn detail");
+                let arch_detail: ArchDetail = detail.arch_detail();
+                let ops = arch_detail.operands();
 
-            let detail: InsnDetail = cs.insn_detail(&i).expect("Failed to get insn detail");
-            let arch_detail: ArchDetail = detail.arch_detail();
-            let ops = arch_detail.operands();
+                let g: String = group_names(&cs, detail.groups());
+                let byte_len = i.bytes().len();
 
-            let output: &[(&str, String)] = &[
-                ("insn id:", format!("{:?}", i.id().0)),
-                ("bytes:", format!("{:?}", i.bytes())),
-                ("read regs:", reg_names(&cs, detail.regs_read())),
-                ("write regs:", reg_names(&cs, detail.regs_write())),
-                ("insn groups:", group_names(&cs, detail.groups())),
-            ];
+                //let output: &[(&str, String)] = &[
+                //    ("insn id:", format!("{:?}", i.id().0)),
+                //    ("bytes:", format!("{:?}", i.bytes())),
+                //    ("read regs:", reg_names(&cs, detail.regs_read())),
+                //    ("write regs:", reg_names(&cs, detail.regs_write())),
+                //    ("insn groups:", g),
+                //];
 
-            for &(ref name, ref message) in output.iter() {
-                println!("{:4}{:12} {}", "", name, message);
-            }
+                // for &(ref name, ref message) in output.iter() {
+                //     println!("{:4}{:12} {}", "", name, message);
+                // }
 
-            println!("{:4}operands: {}", "", ops.len());
-            for op in ops {
-                println!("{:8}{:?}", "", op);
-            }
+                *map.entry(g).or_insert(0) += 1u32;
+
+                println!("{:4}operands: {}", "", ops.len());
+                for op in ops {
+                    println!("{:8}{:?}", "", op);
+                }
 
             }
             println!("--------------------");
@@ -151,6 +159,7 @@ fn main() -> Result<(), io::Error> {
             .build()
             .unwrap();
 
+        let mut map : HashMap<String, u32> = HashMap::new();
         loop {
             io::stdin().read_line(&mut s).unwrap();
             let t = get_next_trace_arm(&mut buf);
@@ -160,8 +169,31 @@ fn main() -> Result<(), io::Error> {
             for inst in t.insts.iter() {
                 println!("{}", inst);
                 let d = cs.disasm_all(&inst.to_le_bytes(), 0).unwrap();
-                for l in d.iter() {
-                    println!("{}", l);
+                for i in d.iter() {
+                    println!("{}", i);
+
+                    let detail: InsnDetail = cs.insn_detail(&i).expect("Failed to get insn detail");
+                    let arch_detail: ArchDetail = detail.arch_detail();
+                    let ops = arch_detail.operands();
+
+                    let g = group_names(&cs, detail.groups());
+                    *map.entry(g).or_insert(0) += 1u32;
+                    // let output: &[(&str, String)] = &[
+                    //     ("insn id:", format!("{:?}", i.id().0)),
+                    //     ("bytes:", format!("{:?}", i.bytes())),
+                    //     ("read regs:", reg_names(&cs, detail.regs_read())),
+                    //     ("write regs:", reg_names(&cs, detail.regs_write())),
+                    //     ("insn groups:", groups),
+                    // ];
+
+                    // for &(ref name, ref message) in output.iter() {
+                    //     println!("{:4}{:12} {}", "", name, message);
+                    // }
+
+                    println!("{:4}operands: {}", "", ops.len());
+                    for op in ops {
+                        println!("{:8}{:?}", "", op);
+                    }
                 }
             }
             println!("--------------------");

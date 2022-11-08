@@ -248,10 +248,10 @@ fn main() -> Result<(), io::Error> {
                 for op in ops {
                     match op.op_type {
                         X86OperandType::Mem(_) => {
-                            match op.access.unwrap() {
-                                RegAccessType::ReadOnly => inst_loads += 1,
-                                RegAccessType::WriteOnly => inst_stores += 1,
-                                RegAccessType::ReadWrite => {
+                            match op.access {
+                                Some(RegAccessType::ReadOnly) => inst_loads += 1,
+                                Some(RegAccessType::WriteOnly) => inst_stores += 1,
+                                Some(RegAccessType::ReadWrite) => {
                                     inst_loads += 1;
                                     inst_stores += 1;
                                 },

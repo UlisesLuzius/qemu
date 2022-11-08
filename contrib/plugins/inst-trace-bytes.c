@@ -160,12 +160,14 @@ int qemu_plugin_install(qemu_plugin_id_t id, const qemu_info_t *info,
     eg_setting_2 = false;
     eg_setting_3 = OPDEF;
 
+    g_autoptr(GString) path = g_string_new("");
     for (i = 0; i < argc; i++) {
         char *opt = argv[i];
         g_autofree char **tokens = g_strsplit(opt, "=", 2);
 
-        if (g_strcmp0(tokens[0], "tot_insn") == 0) {
-            tot_insn = STRTOLL(tokens[1]);
+        if (g_strcmp0(tokens[0], "path") == 0) {
+            // tot_insn = STRTOLL(tokens[1]);
+            g_string_append_printf(path, "%s", tokens[1]);
         } else {
             fprintf(stderr, "option parsing failed: %s\n", opt);
             return -1;
@@ -177,12 +179,11 @@ int qemu_plugin_install(qemu_plugin_id_t id, const qemu_info_t *info,
         abort();
     }
 
-    g_autoptr(GString) path = g_string_new("insn-trace-arm");
     fp = fopen(path->str, "w");
 
 #ifdef CONFIG_3
-    g_autoptr(GString) path3 = g_string_new("insn-trace-arm.3");
-    fp3 = fopen(path3->str, "w");
+    g_string_append_printf(path, ".3");
+    fp3 = fopen(path->str, "w");
 #endif
 
 

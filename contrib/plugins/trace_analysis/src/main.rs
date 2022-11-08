@@ -2,7 +2,7 @@ use std::fs;
 use std::io::{self, BufReader, Read};
 
 use capstone::arch::arm::ArmOperandType;
-use capstone::arch::arm64::{Arm64Operand, Arm64InsnDetail, Arm64OpMem};
+use capstone::arch::arm64::{Arm64Operand, Arm64InsnDetail, Arm64OpMem, Arm64OperandType};
 use capstone::arch::x86::{X86Operand, X86InsnDetail, X86OpMem, X86OperandType};
 use capstone::arch::x86::X86OperandType::*;
 use capstone::{prelude::*, RegAccessType};
@@ -312,6 +312,8 @@ fn main() -> Result<(), io::Error> {
                     groupKey = "sse".to_string();
                 } else if has_crypto {
                     groupKey = "crypto".to_string();
+                } else if has_br {
+                    groupKey = "br".to_string();
                 } else {
                     groupKey = group.clone();
                 }
@@ -335,14 +337,123 @@ fn main() -> Result<(), io::Error> {
             .build()
             .unwrap();
 
+        let branch_groups = ["return", "branch_relative", "call", "jump"];
+
         loop {
             let t = get_next_trace_arm(&mut buf);
 
             for inst in t.insts.iter() {
                 let d = cs.disasm_all(&inst.to_le_bytes(), 0).unwrap();
                 for i in d.iter() {
+                    if curr_inst % 1000000 == 0 {
+                        println!("Insts[{}]", curr_inst);
 
+                        println!("Groups:");
+                        for (groups, breakdown) in &map {
+                            println!("{groups:?},{:?}", breakdown);
+                        }
+                        println!("Mem Bytes:");
+                        for (groups, breakdown) in &map_bytes {
+                            println!("{groups:?},{:?}", breakdown);
+                        }
+                        println!("Mnemonic:");
+                        for (groups, breakdown) in &map_mnem {
+                            println!("{groups:?},{:?}", breakdown);
+                        }
+                    }
 
+                    curr_inst += 1usize;
+
+                    let detail: InsnDetail = cs.insn_detail(&i).expect("Failed to get insn detail");
+                    let mnemonic = i.mnemonic().unwrap().to_string();
+                    let arch_detail = detail.arch_detail();
+                    let arm_detail = arch_detail.arm64().unwrap();
+                    let ops = arm_detail.operands();
+
+                    let g = group_names(&cs, detail.groups());
+                    let group = &g.clone();
+                    let byte_len = i.bytes().len();
+
+                    let is_user = t.is_user;
+                    let mut inst_loads = 0;
+                    let mut inst_stores = 0;
+                    let mut with_reg = 0;
+                    let mut with_fp = 0;
+                    let mut with_sys = 0;
+
+                    for op in ops {
+                        println!("{:8}{:?}", "", op);
+                        /*
+                        match op.op_type {
+                            Arm64OperandType::Mem(_) => {
+                                match op.access {
+                                    Some(RegAccessType::ReadOnly) => inst_loads += 1,
+                                    Some(RegAccessType::WriteOnly) => inst_stores += 1,
+                                    Some(RegAccessType::ReadWrite) => {
+                                        inst_loads += 1;
+                                        inst_stores += 1;
+                                    },
+                                    _ => {
+                                        println!("Did not find what kind of memory operation: {:?}", detail);
+                                        println!("{}", i);
+                                        let output: &[(&str, String)] = &[
+                                            ("insn id:", format!("{:?}", i.id().0)),
+                                            ("bytes:", format!("{:?}", i.bytes())),
+                                            ("read regs:", reg_names(&cs, detail.regs_read())),
+                                            ("write regs:", reg_names(&cs, detail.regs_write())),
+                                            ("insn groups:", group_names(&cs, detail.groups())),
+                                        ];
+
+                                        for &(ref name, ref message) in output.iter() {
+                                            println!("{:4}{:12} {}", "", name, message);
+                                        }
+
+                                        for op in arch_detail.operands() {
+                                            println!("{:8}{:?}", "", op);
+                                        }
+                                    }
+                                }
+                            },
+                            Arm64OperandType::Reg(_) => {
+                                with_reg += 1;
+                            },
+                            Arm64OperandType::Fp(_) => {
+                                with_fp += 1;
+                            },
+                            Arm64OperandType::Sys(_) => {
+                                with_sys += 1;
+                            },
+                            _ => (),
+                        }
+ */
+                    }
+
+                    let has_multi_mem = inst_loads + inst_stores >= 2;
+                    let has_mem = inst_loads + inst_stores >= 1;
+                    let mut has_br = false;
+
+                    for cate in branch_groups {
+                        if group.contains(cate) {
+                            has_br = true;
+                        }
+                    }
+
+                    let has_both_mem = inst_loads >= 1 && inst_stores >= 1;
+
+                    let mut groupKey: String = "".to_string();
+                    if has_br {
+                        groupKey = "br".to_string();
+                    } else {
+                        groupKey = group.clone();
+                    }
+
+                    let valueGroup = map.entry(groupKey).or_insert(Breakdown::default());
+                    let valueByte = map_bytes.entry(byte_len).or_insert(Breakdown::default());
+                    let value_mnem= map_mnem.entry(mnemonic).or_insert(Breakdown::default());
+
+                    Breakdown::update(valueGroup, is_user, byte_len, inst_loads, inst_stores, has_br, has_both_mem, has_mem, has_multi_mem);
+                    Breakdown::update(valueByte, is_user, byte_len, inst_loads, inst_stores, has_br, has_both_mem, has_mem, has_multi_mem);
+                    Breakdown::update(value_mnem, is_user, byte_len, inst_loads, inst_stores, has_br, has_both_mem, has_mem, has_multi_mem);
                 }
             }
         }

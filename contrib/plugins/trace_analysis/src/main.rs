@@ -255,7 +255,11 @@ fn main() -> Result<(), io::Error> {
                                     inst_loads += 1;
                                     inst_stores += 1;
                                 },
-                                _ => println!("Did not find what kind of memory operation: {:?}", op)
+                                _ => {
+                                    println!("Did not find what kind of memory operation: {:?}", detail);
+                                    println!("{}", i);
+                                }
+
                             }
                         },
                         X86OperandType::Reg(_) => {

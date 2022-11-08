@@ -18,6 +18,21 @@ pub struct TraceEntryX86 {
     pub insts_bytes: Vec<u8>
 }
 
+pub struct Breakdown {
+    pub tot: usize,
+    pub user: usize,
+    pub sys: usize,
+    pub with_load: usize,
+    pub with_store: usize,
+    pub byte_sizes: [usize; 13]
+}
+
+impl Default for Breakdown {
+    fn default () -> Breakdown{
+        Breakdown{tot: 0, user: 0, sys:0, with_load: 0, with_store: 0, byte_sizes: [0usize; 13]}
+    }
+}
+
 /// Print register names
 fn reg_names(cs: &Capstone, regs: &[RegId]) -> String {
     let names: Vec<String> = regs.iter().map(|&x| cs.reg_name(x).unwrap()).collect();
@@ -80,8 +95,6 @@ pub fn get_next_trace_x86(f: &mut BufReader::<fs::File>) -> TraceEntryX86 {
     let is_user = (p_pc & (1 << 63)) != 0;
 
     // 3. read the instruction one by one.
-    // let mut handle = f.take(n_bytes as u64);
-    // handle.read(&mut insts_bytes);
     for _ in 0..n_bytes {
         let mut buf = [0u8; 1];
         f.read_exact(&mut buf).unwrap();
@@ -90,6 +103,24 @@ pub fn get_next_trace_x86(f: &mut BufReader::<fs::File>) -> TraceEntryX86 {
 
     return TraceEntryX86 { p_pc, n_insts, is_user, insts_bytes };
 }
+
+//let output: &[(&str, String)] = &[
+//    ("insn id:", format!("{:?}", i.id().0)),
+//    ("bytes:", format!("{:?}", i.bytes())),
+//    ("read regs:", reg_names(&cs, detail.regs_read())),
+//    ("write regs:", reg_names(&cs, detail.regs_write())),
+//    ("insn groups:", g),
+//];
+
+// for &(ref name, ref message) in output.iter() {
+//     println!("{:4}{:12} {}", "", name, message);
+// }
+// println!("{:4}operands: {}", "", ops.len());
+// for op in ops {
+//     println!("{:8}{:?}", "", op);
+// }
+
+
 
 fn main() -> Result<(), io::Error> {
 
@@ -112,20 +143,17 @@ fn main() -> Result<(), io::Error> {
             .build()
             .unwrap();
 
-//        let mut map : [HashMap<String, u32>; 13] = [HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(), HashMap::new(),];
-        let mut map : HashMap<String, u32> = HashMap::new();
+        //let mut map : HashMap<String, Breakdown> = HashMap::new();
+        let mut map : HashMap<String, usize> = HashMap::new();
         loop {
-            
-            io::stdin().read_line(&mut s).unwrap();
             let t = get_next_trace_x86(&mut buf);
 
-            // println!("PC: {:#016x}, is_user: {}, instruction count: {}", t.p_pc, t.is_user, t.n_insts);
             let d = cs.disasm_all(&t.insts_bytes, 0).unwrap();
             for i in d.iter() {
-                //println!("{}", i);
                 if curr_inst % 10000000  == 0 {
+                    println!("Insts[{}]", curr_inst);
                     for (groups, count) in &map {
-                        println!("{groups:?} has {count} insts");
+                        println!("{groups:?},{count}");
                     }
                 }
                 curr_inst += 1usize;
@@ -136,28 +164,9 @@ fn main() -> Result<(), io::Error> {
 
                 let g: String = group_names(&cs, detail.groups());
                 let byte_len = i.bytes().len();
-
-                //let output: &[(&str, String)] = &[
-                //    ("insn id:", format!("{:?}", i.id().0)),
-                //    ("bytes:", format!("{:?}", i.bytes())),
-                //    ("read regs:", reg_names(&cs, detail.regs_read())),
-                //    ("write regs:", reg_names(&cs, detail.regs_write())),
-                //    ("insn groups:", g),
-                //];
-
-                // for &(ref name, ref message) in output.iter() {
-                //     println!("{:4}{:12} {}", "", name, message);
-                // }
-
-                *map.entry(g).or_insert(0) += 1u32;
-
-                // println!("{:4}operands: {}", "", ops.len());
-                // for op in ops {
-                //     println!("{:8}{:?}", "", op);
-                // }
-
+                //let value = map.entry(g).or_insert(Breakdown::default());
+                *map.entry(g).or_insert(0) += 1usize;
             }
-            // println!("--------------------");
         }
     } else {
         println!("Logging ARM:");
@@ -168,53 +177,33 @@ fn main() -> Result<(), io::Error> {
             .build()
             .unwrap();
 
-        let mut map : HashMap<String, u32> = HashMap::new();
+        //let mut map : HashMap<String, Breakdown> = HashMap::new();
+        let mut map : HashMap<String, usize> = HashMap::new();
         loop {
-            // io::stdin().read_line(&mut s).unwrap();
             let t = get_next_trace_arm(&mut buf);
 
-            // println!("PC: {:#016x}, is_user: {}, instruction count: {}", t.p_pc, t.is_user, t.n_insts);
-
             for inst in t.insts.iter() {
-                // println!("{}", inst);
                 let d = cs.disasm_all(&inst.to_le_bytes(), 0).unwrap();
                 for i in d.iter() {
-                    // println!("{}", i);
+
                     if curr_inst % 10000000 == 0 {
+                        println!("Insts[{}]", curr_inst);
                         for (groups, count) in &map {
-                            println!("{groups:?} has {count} insts");
+                            println!("{groups:?},{count}");
                         }
                     }
                     curr_inst += 1usize;
-
-
 
                     let detail: InsnDetail = cs.insn_detail(&i).expect("Failed to get insn detail");
                     let arch_detail: ArchDetail = detail.arch_detail();
                     let ops = arch_detail.operands();
 
                     let g = group_names(&cs, detail.groups());
-                    *map.entry(g).or_insert(0) += 1u32;
+                    //let value = map.entry(g).or_insert(Breakdown::default());
+                    *map.entry(g).or_insert(0) += 1usize;
 
-                    // let output: &[(&str, String)] = &[
-                    //     ("insn id:", format!("{:?}", i.id().0)),
-                    //     ("bytes:", format!("{:?}", i.bytes())),
-                    //     ("read regs:", reg_names(&cs, detail.regs_read())),
-                    //     ("write regs:", reg_names(&cs, detail.regs_write())),
-                    //     ("insn groups:", groups),
-                    // ];
-
-                    // for &(ref name, ref message) in output.iter() {
-                    //     println!("{:4}{:12} {}", "", name, message);
-                    // }
-
-                    // println!("{:4}operands: {}", "", ops.len());
-                    // for op in ops {
-                    //     println!("{:8}{:?}", "", op);
-                    // }
                 }
             }
-            // println!("--------------------");
         }
     }
 

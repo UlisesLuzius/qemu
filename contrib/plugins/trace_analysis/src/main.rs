@@ -486,8 +486,8 @@ fn main() -> Result<(), io::Error> {
         let fp_groups = ["neon", "fparmv8"];
         let crypto_groups = ["crypto"];
         let others_groups = ["pointer"];
-        let mem_mnemonics = ["stp", "ldp", "ld", "st"];
-
+        let mem_mnemonics = ["stp", "ldp", "ld", "st", "casal","casl","casa", "caspl", "caspal", "caspa"];
+ 
         loop {
             let t = get_next_trace_arm(&mut buf);
 
@@ -535,12 +535,12 @@ fn main() -> Result<(), io::Error> {
                                     inst_loads += 2;
                                 } else if mnemonic.contains("ld") {
                                     inst_loads += 1;
-                                } else if mnemonic.contains("casal") {
+                                } else if mnemonic.contains("casal") || mnemonic.contains("caspal")  {
                                     inst_stores += 1;
                                     inst_loads += 1;
-                                } else if mnemonic.contains("casl") {
+                                } else if mnemonic.contains("casl") || mnemonic.contains("caspl"){
                                     inst_stores += 1;
-                                } else if mnemonic.contains("casa") {
+                                } else if mnemonic.contains("casa") || mnemonic.contains("caspa") {
                                     inst_loads += 1;
                                 } else {
                                     println!("Did not find what kind of memory operation: {:?}", detail);

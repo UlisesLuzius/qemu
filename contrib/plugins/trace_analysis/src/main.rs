@@ -493,8 +493,140 @@ fn main() -> Result<(), io::Error> {
             for inst in t.insts.iter() {
                 let d = cs.disasm_all(&inst.to_le_bytes(), 0).unwrap();
                 for i in d.iter() {
+                    if (curr_inst % 100000000) == 0 {
+                        let hash_list = [
+                            ("Mem", &map_mnem_mem),
+                            ("Br", &map_mnem_br),
+                            ("Alu", &map_mnem_alu),
+                            ("Priv", &map_mnem_priv),
+                            ("Fp", &map_mnem_fp),
+                            ("Crypto", &map_mnem_crypto),
+                            ("Others", &map_mnem_others_spec)];
+ 
+                        println!("Insts[{}]", curr_inst);
+                        print_stats(&map, &map_bytes, &hash_list);
+                    }
 
-                }
+                    curr_inst += 1usize;
+                
+
+                    let detail: InsnDetail = cs.insn_detail(&i).expect("Failed to get insn detail");
+                    let mnemonic = i.mnemonic().unwrap().to_string();
+                    let arch_detail = detail.arch_detail();
+                    let arm64_detail = arch_detail.arm64().unwrap();
+                    let ops = arm64_detail.operands();
+
+                    let g = group_names(&cs, detail.groups());
+                    let group = &g.clone();
+
+                    let is_user = t.is_user;
+                    let mut inst_loads = 0;
+                    let mut inst_stores = 0;
+
+                    for op in ops {
+                        match op.op_type {
+                            Arm64OperandType::Mem(value) => print!(""),
+                            _ => print!("")
+                        }
+                    }
+                    println!("Did not find what kind of memory operation: {:?}", detail);
+                    println!("{}", i);
+                    let output: &[(&str, String)] = &[
+                        ("insn id:", format!("{:?}", i.id().0)),
+                        ("bytes:", format!("{:?}", i.bytes())),
+                        ("read regs:", reg_names(&cs, detail.regs_read())),
+                        ("write regs:", reg_names(&cs, detail.regs_write())),
+                        ("insn groups:", group_names(&cs, detail.groups())),
+                    ];
+
+                    for &(ref name, ref message) in output.iter() {
+                        println!("{:4}{:12} {}", "", name, message);
+                    }
+
+                    for op in arch_detail.operands() {
+                        println!("{:8}{:?}", "", op);
+                    }
+
+                    let has_multi_mem = inst_loads + inst_stores >= 2;
+                    let has_mem = inst_loads + inst_stores >= 1;
+                    let mut is_br = false;
+                    let mut is_mem = false;
+                    let mut is_fp= false;
+                    let mut is_crypto = false;
+                    let mut is_priviledge = false;
+                    let mut is_others_special = false;
+
+                    for cate in branch_groups {
+                        if group.contains(cate) {
+                            is_br = true;
+                        }
+                    }
+
+                    for cate in fp_groups {
+                        if group.contains(cate) {
+                            is_fp = true;
+                        }
+                    }
+
+                    for cate in others_groups {
+                        if group.contains(cate) {
+                            is_others_special = true;
+                        }
+                    }
+
+                    for cate in crypto_groups {
+                        if group.contains(cate) {
+                            is_crypto = true;
+                        }
+                    }
+
+                    if false {
+                        is_mem = true;
+                    }
+                
+
+                    if group.contains("priviledge")  {
+                        is_priviledge = true;
+                    }
+
+                    let has_both_mem = inst_loads >= 1 && inst_stores >= 1;
+
+                    let mut group_key: String = "".to_string();
+                    let value : &mut Breakdown;
+
+                    if is_priviledge {
+                        group_key = "priviledge".to_string();
+                        value = map_mnem_priv.entry(mnemonic).or_insert(Breakdown::default());
+                    } else if is_fp {
+                        group_key = "fp".to_string();
+                        value = map_mnem_fp.entry(mnemonic).or_insert(Breakdown::default());
+                    } else if is_crypto {
+                        group_key = "crypto".to_string();
+                        value = map_mnem_crypto.entry(mnemonic).or_insert(Breakdown::default());
+                    } else if is_br {
+                        group_key = "br".to_string();
+                        value = map_mnem_br.entry(mnemonic).or_insert(Breakdown::default());
+                    } else if is_mem {
+                        group_key = "mem".to_string();
+                        value = map_mnem_mem.entry(mnemonic).or_insert(Breakdown::default());
+                    } else if is_others_special {
+                        group_key = "others".to_string();
+                        value = map_mnem_others_spec.entry(mnemonic).or_insert(Breakdown::default());
+                    } else {
+                        group_key = "logic".to_string();
+                        value = map_mnem_alu.entry(mnemonic).or_insert(Breakdown::default());
+                    }
+
+                    let value_group = map.entry(group_key).or_insert(Breakdown::default());
+                    Breakdown::update(value_group, is_user, 4, 
+                        inst_loads, inst_stores, 
+                        is_br, is_priviledge, is_mem, is_fp, is_crypto, 
+                        has_both_mem, has_mem, has_multi_mem);
+                    Breakdown::update(value, is_user, 4, 
+                        inst_loads, inst_stores, 
+                        is_br, is_priviledge, is_mem, is_fp, is_crypto, 
+                        has_both_mem, has_mem, has_multi_mem);
+                    }
             }
         }
     }

@@ -532,7 +532,7 @@ fn main() -> Result<(), io::Error> {
                                 } else if mnemonic.contains("st") {
                                     inst_stores += 1;
                                 } else if mnemonic.contains("ldp") {
-                                    inst_loads += 1;
+                                    inst_loads += 2;
                                 } else if mnemonic.contains("ld") {
                                     inst_loads += 1;
                                 } else {

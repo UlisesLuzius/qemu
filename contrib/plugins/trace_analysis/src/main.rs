@@ -348,6 +348,8 @@ fn main() -> Result<(), io::Error> {
                                     if mnemonic.contains("ins") || mnemonic.contains("movzx") {
                                         inst_loads += 1;
                                         inst_stores += 1;
+                                    } else if mnemonic.contains("test") {
+                                        inst_loads += 1;
                                     } else {
                                         println!("Did not find what kind of memory operation: {:?}", detail);
                                         println!("{}", i);
@@ -489,7 +491,7 @@ fn main() -> Result<(), io::Error> {
             for inst in t.insts.iter() {
                 let d = cs.disasm_all(&inst.to_le_bytes(), 0).unwrap();
                 for i in d.iter() {
-                    
+
                 }
             }
         }

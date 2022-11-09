@@ -549,6 +549,7 @@ fn main() -> Result<(), io::Error> {
                     let is_user = t.is_user;
                     let mut inst_loads = 0;
                     let mut inst_stores = 0;
+                    let mut regs_access = 0;
 
                     for op in ops {
                         match op.op_type {
@@ -594,9 +595,14 @@ fn main() -> Result<(), io::Error> {
                                     }
                                 }
                             },
+                            Arm64OperandType::Reg(value) = {
+                                regs_access += 1;
+                            }
                             _ => print!("")
                         }
                     }
+
+                
 
                     let has_multi_mem = inst_loads + inst_stores >= 2;
                     let has_mem = inst_loads + inst_stores >= 1;
@@ -606,6 +612,26 @@ fn main() -> Result<(), io::Error> {
                     let mut is_crypto = false;
                     let mut is_priviledge = false;
                     let mut is_others_special = false;
+
+
+                if regs_access >= 2 && has_mem {
+                    println!("Multi Access: reg[{}]:mem[{}] {:?}", regs_access, inst_loads + inst_stores, detail);
+                    println!("{}", i);
+                    let output: &[(&str, String)] = &[
+                        ("insn id:", format!("{:?}", i.id().0)),
+                        ("bytes:", format!("{:?}", i.bytes())),
+                        ("read regs:", reg_names(&cs, detail.regs_read())),
+                        ("write regs:", reg_names(&cs, detail.regs_write())),
+                        ("insn groups:", group_names(&cs, detail.groups())),
+                    ];
+                    for &(ref name, ref message) in output.iter() {
+                        println!("{:4}{:12} {}", "", name, message);
+                    }
+
+                    for op in arch_detail.operands() {
+                        println!("{:8}{:?}", "", op);
+                    }
+                }
 
                     for cate in branch_groups {
                         if group.contains(cate) {

@@ -297,7 +297,7 @@ fn main() -> Result<(), io::Error> {
                     for hash_table in &hash_list {
                         print!("{}", hash_table.0);
                         for (groups, breakdown) in hash_table.1 {
-                            print!("{groups:?}");
+                            print!("{groups:?},");
                             breakdown.print_stats();
                         }
                     }
@@ -306,7 +306,7 @@ fn main() -> Result<(), io::Error> {
                     for hash_table in &hash_list {
                         print!("{}", hash_table.0);
                         for (groups, breakdown) in hash_table.1 {
-                            print!("{groups:?}");
+                            print!("{groups:?},");
                             breakdown.print_byte_dist(0);
                             breakdown.print_byte_dist(1);
                         }

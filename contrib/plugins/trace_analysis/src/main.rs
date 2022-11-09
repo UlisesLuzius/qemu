@@ -486,7 +486,7 @@ fn main() -> Result<(), io::Error> {
         let fp_groups = ["neon", "fparmv8"];
         let crypto_groups = ["crypto"];
         let others_groups = ["pointer"];
-        let mem_mnemonics = ["stp", "ldp", "ld", "st", "casal","cas", "prfm"];
+        let mem_mnemonics = ["stp", "ldp", "ld", "st", "cas", "prfm", "swp"];
  
         loop {
             let t = get_next_trace_arm(&mut buf);
@@ -543,7 +543,7 @@ fn main() -> Result<(), io::Error> {
                                 //} else if mnemonic.contains("casa") || mnemonic.contains("caspa") {
                                 //    inst_loads += 1;
                                 // Compare and Swap
-                                } else if mnemonic.contains("cas") {
+                                } else if mnemonic.contains("cas") || mnemonic.contains("swp"){
                                     inst_stores += 1;
                                     inst_loads += 1;
                                 } else if mnemonic.contains("prfm") {

@@ -486,6 +486,7 @@ fn main() -> Result<(), io::Error> {
         let fp_groups = ["neon", "fparmv8"];
         let crypto_groups = ["crypto"];
         let others_groups = ["pointer"];
+        let mem_mnemonics = ["stp", "ldp", "ld", "st"];
 
         loop {
             let t = get_next_trace_arm(&mut buf);
@@ -525,26 +526,37 @@ fn main() -> Result<(), io::Error> {
 
                     for op in ops {
                         match op.op_type {
-                            Arm64OperandType::Mem(value) => print!(""),
+                            Arm64OperandType::Mem(value) => {
+                                if mnemonic.contains("stp") {
+                                    inst_stores += 2;
+                                } else if mnemonic.contains("st") {
+                                    inst_stores += 1;
+                                } else if mnemonic.contains("ldp") {
+                                    inst_loads += 1;
+                                } else if mnemonic.contains("ld") {
+                                    inst_loads += 1;
+                                } else {
+                                    println!("Did not find what kind of memory operation: {:?}", detail);
+                                    println!("{}", i);
+                                    let output: &[(&str, String)] = &[
+                                        ("insn id:", format!("{:?}", i.id().0)),
+                                        ("bytes:", format!("{:?}", i.bytes())),
+                                        ("read regs:", reg_names(&cs, detail.regs_read())),
+                                        ("write regs:", reg_names(&cs, detail.regs_write())),
+                                        ("insn groups:", group_names(&cs, detail.groups())),
+                                    ];
+
+                                    for &(ref name, ref message) in output.iter() {
+                                        println!("{:4}{:12} {}", "", name, message);
+                                    }
+
+                                    for op in arch_detail.operands() {
+                                        println!("{:8}{:?}", "", op);
+                                    }
+                                }
+                            },
                             _ => print!("")
                         }
-                    }
-                    println!("Did not find what kind of memory operation: {:?}", detail);
-                    println!("{}", i);
-                    let output: &[(&str, String)] = &[
-                        ("insn id:", format!("{:?}", i.id().0)),
-                        ("bytes:", format!("{:?}", i.bytes())),
-                        ("read regs:", reg_names(&cs, detail.regs_read())),
-                        ("write regs:", reg_names(&cs, detail.regs_write())),
-                        ("insn groups:", group_names(&cs, detail.groups())),
-                    ];
-
-                    for &(ref name, ref message) in output.iter() {
-                        println!("{:4}{:12} {}", "", name, message);
-                    }
-
-                    for op in arch_detail.operands() {
-                        println!("{:8}{:?}", "", op);
                     }
 
                     let has_multi_mem = inst_loads + inst_stores >= 2;
@@ -580,8 +592,10 @@ fn main() -> Result<(), io::Error> {
                         }
                     }
 
-                    if false {
-                        is_mem = true;
+                    for mnem in mem_mnemonics {
+                        if mnemonic.contains(mnem) {
+                            is_mem = true;
+                        }
                     }
                 
 

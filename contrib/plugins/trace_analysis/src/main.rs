@@ -535,6 +535,13 @@ fn main() -> Result<(), io::Error> {
                                     inst_loads += 2;
                                 } else if mnemonic.contains("ld") {
                                     inst_loads += 1;
+                                } else if mnemonic.contains("casal") {
+                                    inst_stores += 1;
+                                    inst_loads += 1;
+                                } else if mnemonic.contains("casl") {
+                                    inst_stores += 1;
+                                } else if mnemonic.contains("casa") {
+                                    inst_loads += 1;
                                 } else {
                                     println!("Did not find what kind of memory operation: {:?}", detail);
                                     println!("{}", i);

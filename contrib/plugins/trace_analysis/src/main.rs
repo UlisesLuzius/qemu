@@ -60,7 +60,7 @@ impl Breakdown {
                 self.with_both[0], self.with_both[1],
                 self.mem_branch[0], self.mem_branch[1],
                 self.has_multi_mem[0], self.has_multi_mem[1],
- )
+        )
     }
     fn print_byte_dist(&self, idx: usize) {
         println!("{},{},{},{},{},{},{},{},{},{},{},{}",
@@ -340,6 +340,8 @@ fn main() -> Result<(), io::Error> {
                                     inst_stores += 1;
                                 },
                                 _ => {
+                                    inst_loads += 1;
+
                                     println!("Did not find what kind of memory operation: {:?}", detail);
                                     println!("{}", i);
                                     let output: &[(&str, String)] = &[

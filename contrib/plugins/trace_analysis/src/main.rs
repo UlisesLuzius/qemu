@@ -442,7 +442,7 @@ fn main() -> Result<(), io::Error> {
                     group_key = "br".to_string();
                     value = map_mnem_br.entry(mnemonic).or_insert(Breakdown::default());
                 } else if is_mem {
-                    group_key = "mov".to_string();
+                    group_key = "mem".to_string();
                     value = map_mnem_mem.entry(mnemonic).or_insert(Breakdown::default());
                 } else if is_others_special {
                     group_key = "others".to_string();

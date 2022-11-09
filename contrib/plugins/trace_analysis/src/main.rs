@@ -348,7 +348,7 @@ fn main() -> Result<(), io::Error> {
                                     if mnemonic.contains("ins") || mnemonic.contains("movzx") {
                                         inst_loads += 1;
                                         inst_stores += 1;
-                                    } else if mnemonic.contains("test") || mnemonic.contains("cvtsi2ss"){
+                                    } else if mnemonic.contains("test") || mnemonic.contains("cvtsi2s"){
                                         inst_loads += 1;
                                     } else {
                                         println!("Did not find what kind of memory operation: {:?}", detail);

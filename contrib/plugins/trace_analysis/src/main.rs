@@ -274,9 +274,9 @@ fn main() -> Result<(), io::Error> {
         for hash_table in hash_list {
             println!("{}:", hash_table.0);
             for (groups, breakdown) in hash_table.1 {
-                print!("{groups:?},user");
+                print!("{groups:?},user,");
                 breakdown.print_byte_dist(0);
-                print!("{groups:?},kernel");
+                print!("{groups:?},kernel,");
                 breakdown.print_byte_dist(1);
             }
         }

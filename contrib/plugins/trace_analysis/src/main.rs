@@ -251,6 +251,37 @@ fn main() -> Result<(), io::Error> {
     let mut map_mnem_crypto: HashMap<String, Breakdown> = HashMap::new();
     let mut map_mnem_others_spec: HashMap<String, Breakdown> = HashMap::new();
 
+    fn print_stats(_map_groups: &HashMap<String, Breakdown>, _map_bytes: &HashMap<usize, Breakdown> , hash_list: &[(&str, &HashMap<String, Breakdown>); 7]) {
+        println!("Groups:");
+        for (groups, breakdown) in _map_groups {
+            println!("{groups:?},{:?}", breakdown);
+        }
+        println!("Mem Bytes:");
+        for (groups, breakdown) in _map_bytes {
+            println!("{groups:?},{:?}", breakdown);
+        }
+
+        println!("Stats:");
+        for hash_table in hash_list {
+            println!("{}:", hash_table.0);
+            for (groups, breakdown) in hash_table.1 {
+                        print!("{groups:?},");
+                        breakdown.print_stats();
+            }
+        }
+
+        println!("ByteDist:");
+        for hash_table in hash_list {
+            println!("{}:", hash_table.0);
+            for (groups, breakdown) in hash_table.1 {
+                print!("{groups:?},user");
+                breakdown.print_byte_dist(0);
+                print!("{groups:?},kernel");
+                breakdown.print_byte_dist(1);
+            }
+        }
+    }
+
 
     if arch == "x86" {
         
@@ -263,7 +294,7 @@ fn main() -> Result<(), io::Error> {
             .unwrap();
 
         let branch_groups = ["jump", "ret", "branch_relative", "call"];
-        let sse_groups = ["sse1", "sse2", "sse41", "sse42", "ssse3", "fpu"];
+        let fp_groups = ["sse1", "sse2", "sse41", "sse42", "ssse3", "fpu"];
         let crypto_groups = ["adx", "aes", "pclmul"];
         let others_groups = ["not64bitmode", "fsgsbse"];
 
@@ -272,7 +303,7 @@ fn main() -> Result<(), io::Error> {
             let d = cs.disasm_all(&t.insts_bytes, 0).unwrap();
 
             for i in d.iter() {
-                if curr_inst % 100000000 == 0 {
+                if curr_inst % 1000000 == 0 {
                     let hash_list = [
                         ("Mem", &map_mnem_mem),
                         ("Br", &map_mnem_br),
@@ -283,34 +314,7 @@ fn main() -> Result<(), io::Error> {
                         ("Others", &map_mnem_others_spec)];
  
                     println!("Insts[{}]", curr_inst);
-
-                    println!("Groups:");
-                    for (groups, breakdown) in &map {
-                        println!("{groups:?},{:?}", breakdown);
-                    }
-                    println!("Mem Bytes:");
-                    for (groups, breakdown) in &map_bytes {
-                        println!("{groups:?},{:?}", breakdown);
-                    }
-
-                    println!("Stats:");
-                    for hash_table in &hash_list {
-                        println!("{}:", hash_table.0);
-                        for (groups, breakdown) in hash_table.1 {
-                            print!("{groups:?},");
-                            breakdown.print_stats();
-                        }
-                    }
-
-                    println!("ByteDist:");
-                    for hash_table in &hash_list {
-                        println!("{}:", hash_table.0);
-                        for (groups, breakdown) in hash_table.1 {
-                            print!("{groups:?},");
-                            breakdown.print_byte_dist(0);
-                            breakdown.print_byte_dist(1);
-                        }
-                    }
+                    print_stats(&map, &map_bytes, &hash_list);
                 }
 
                 curr_inst += 1usize;
@@ -388,7 +392,7 @@ fn main() -> Result<(), io::Error> {
                     }
                 }
 
-                for cate in sse_groups {
+                for cate in fp_groups {
                     if group.contains(cate) {
                         is_fp = true;
                     }
@@ -410,7 +414,8 @@ fn main() -> Result<(), io::Error> {
                     }
                 }
 
-                if mnemonic.contains("mov") || mnemonic.contains("lea") || mnemonic.contains("ins") {
+                if mnemonic.contains("mov") || mnemonic.contains("lea") || 
+                    mnemonic.contains("ins") || mnemonic.contains("stosd") {
                     is_mem = true;
                 }
                 
@@ -474,6 +479,9 @@ fn main() -> Result<(), io::Error> {
             .unwrap();
 
         let branch_groups = ["return", "branch_relative", "call", "jump"];
+        let fp_groups = ["neon", "fparmv8"];
+        let crypto_groups = ["crypto"];
+        let others_groups = ["pointer"];
 
         loop {
             let t = get_next_trace_arm(&mut buf);
@@ -481,8 +489,7 @@ fn main() -> Result<(), io::Error> {
             for inst in t.insts.iter() {
                 let d = cs.disasm_all(&inst.to_le_bytes(), 0).unwrap();
                 for i in d.iter() {
-
-
+                    
                 }
             }
         }

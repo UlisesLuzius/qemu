@@ -857,7 +857,7 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
     insn_addr = ((InsnData *) userdata)->addr;
 
     if(insn_addr == last_haddr) { return; }
-    last_haddr = haddr;
+    last_haddr = insn_addr;
 
     insn_access(vcpu_index, insn_addr, is_user);
 }

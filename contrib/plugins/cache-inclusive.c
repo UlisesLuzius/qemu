@@ -846,6 +846,7 @@ static void vcpu_mem_access(unsigned int vcpu_index, qemu_plugin_meminfo_t info,
     mem_access(vcpu_index, effective_addr, is_user);
 }
 
+static uint64_t last_haddr = 0;
 static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
 {
     if(vcpu_index != 1) { return; }
@@ -854,6 +855,10 @@ static void vcpu_insn_exec(unsigned int vcpu_index, void *userdata)
     bool is_user;
     is_user = ((InsnData *) userdata)->is_user;
     insn_addr = ((InsnData *) userdata)->addr;
+
+    if(insn_addr == last_haddr) { return; }
+    last_haddr = haddr;
+
     insn_access(vcpu_index, insn_addr, is_user);
 }
 

@@ -412,7 +412,9 @@ static ARM_MNEMONICS_MEM: [&str; 7] = ["stp", "ldp", "ld", "st", "cas", "prfm", 
  
 pub fn execute(arch: &String, cs: &Capstone, inst_bytes: &[u8], is_user: bool) -> Vec<BreakdownData> {
     let insts = cs.disasm_all(inst_bytes, 0).unwrap();
-    assert!(insts.len() != 0);
+    if insts.len() == 0 {
+        panic!("No insts decoded, bytes: {:?}", inst_bytes);
+    }
 
     let mut breaks: Vec<BreakdownData> = Vec::new();
     for insn in insts.iter() {

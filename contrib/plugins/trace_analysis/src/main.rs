@@ -302,6 +302,7 @@ fn main() -> Result<(), io::Error> {
         loop {
             let t = get_next_trace_x86(&mut buf);
             let d = cs.disasm_all(&t.insts_bytes, 0).unwrap();
+            assert!(d.len() != 0);
 
             for i in d.iter() {
                 if (curr_inst % 100000000) == 0 {

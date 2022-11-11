@@ -414,6 +414,7 @@ pub fn execute(arch: &String, cs: &Capstone, inst_bytes: &[u8], is_user: bool) -
     let insts = cs.disasm_all(inst_bytes, 0).unwrap();
     assert!(insts.len() != 0);
 
+    println("inst");
     let mut breaks: Vec<BreakdownData> = Vec::new();
     for insn in insts.iter() {
         let detail: InsnDetail = cs.insn_detail(&insn).expect("Failed to get insn detail");

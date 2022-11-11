@@ -399,7 +399,6 @@ static ARM_GROUPS_CRYPTO: [&str; 1] = ["crypto"];
 static ARM_GROUPS_OTHERS: [&str; 1] = ["pointer"];
 static ARM_MNEMONICS_MEM: [&str; 7] = ["stp", "ldp", "ld", "st", "cas", "prfm", "swp"];
 
-pub fn execute(arch: &String, cs: &Capstone, inst_bytes: &[u8], is_user: bool) -> BreakdownData {
     // let insn_bytes = if arch == "x86" {
     //     let mut vec = inst_bytes.to_vec();
     //     vec.reverse();
@@ -410,39 +409,35 @@ pub fn execute(arch: &String, cs: &Capstone, inst_bytes: &[u8], is_user: bool) -
     //     panic!("Wrong arch type");
     // };
     // let bytes = insn_bytes.as_slice();
+ 
+pub fn execute(arch: &String, cs: &Capstone, inst_bytes: &[u8], is_user: bool) -> Vec<BreakdownData> {
     let insts = cs.disasm_all(inst_bytes, 0).unwrap();
+    assert!(insts.len() != 0);
 
-    if insts.len() != 1 {
-        println!("Something went wrong {:?}", inst_bytes);
-        return BreakdownData::default();
-    } 
-    let inst = insts.get(0).unwrap();
-    assert!(insts.len() == 1);
-
-    let detail: InsnDetail = cs.insn_detail(&inst).expect("Failed to get insn detail");
-    let mnemonic = inst.mnemonic().unwrap().to_string();
-    let arch_detail = detail.arch_detail();
-    let groups = group_names(&cs, detail.groups());
-
-    if arch == "arm" {
-        return execute_arm(inst, arch_detail, mnemonic, groups, is_user);
-    } else if arch == "x86" {
-        return execute_x86(
-            inst,
-            arch_detail,
-            mnemonic,
-            groups,
-            is_user,
-            inst_bytes.len(),
-        );
-    } else {
-        assert!(false);
-        return BreakdownData::default();
+    let mut breaks: Vec<BreakdownData> = Vec::new();
+    for insn in insts.iter() {
+        let detail: InsnDetail = cs.insn_detail(&insn).expect("Failed to get insn detail");
+        let mnemonic = insn.mnemonic().unwrap().to_string();
+        let arch_detail = detail.arch_detail();
+        let groups = group_names(&cs, detail.groups());
+        if arch == "arm" {
+            breaks.push(execute_arm(insn, arch_detail, mnemonic, groups, is_user));
+        } else if arch == "x86" {
+            breaks.push(execute_x86(
+                insn,
+                arch_detail,
+                mnemonic,
+                groups,
+                is_user,
+                inst_bytes.len(),
+            ));
+        }
     }
+   return breaks;
 }
 
 fn extract_memops_x86(
-    insn: &Insn<'_>,
+    insn: &Insn,
     ops: X86OperandIterator,
     mnemonic: &String,
     inst_loads: &mut usize,
@@ -497,7 +492,7 @@ fn extract_memops_x86(
 }
 
 fn extract_memops_arm(
-    insn: &Insn<'_>,
+    insn: &Insn,
     ops: Arm64OperandIterator,
     mnemonic: &String,
     inst_loads: &mut usize,
@@ -624,7 +619,7 @@ fn extract_data(
 }
 
 fn execute_x86(
-    insn: &Insn<'_>,
+    insn: &Insn,
     arch_detail: ArchDetail,
     mnemonic: String,
     groups: String,
@@ -661,7 +656,7 @@ fn execute_x86(
 }
 
 fn execute_arm(
-    insn: &Insn<'_>,
+    insn: &Insn,
     arch_detail: ArchDetail,
     mnemonic: String,
     groups: String,

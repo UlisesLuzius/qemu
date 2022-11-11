@@ -152,32 +152,26 @@ unsafe extern "C" fn vcpu_tb_trans(
     tb: *mut qemu_plugin::qemu_plugin_tb,
 ) {
     let n_inst = qemu_plugin_tb_n_insns(tb);
-    let hva = qemu_plugin_insn_haddr(qemu_plugin_tb_get_insn(tb, 0)) as u64;
+    let base_insn = qemu_plugin_tb_get_insn(tb, 0);
+    let hva = qemu_plugin_insn_haddr(base_insn) as u64;
+    let is_user = qemu_plugin_is_userland(base_insn);
 
     let context_map = TB_HASHMAP.read().unwrap();
-
     if !context_map.contains_key(&hva) {
         drop(context_map);
-        let mut breaks: Vec<BreakdownData> = Vec::new();
-        let mut curr_hva = hva;
+        let mut total_bytes = 0;
         for idx in 0..n_inst {
             let insn = qemu_plugin_tb_get_insn(tb, idx);
             let insn_size = qemu_plugin_insn_size(insn) as usize;
-            let insn_ptr = qemu_plugin_insn_data(insn) as *const u8;
-            let insn_bytes: &[u8] = slice::from_raw_parts(insn_ptr, insn_size);
-
-            let is_user = qemu_plugin_is_userland(insn);
-
-            let arch = ARCH.get_unchecked();
-            let capstone = CS.get_unchecked().get();
-
-            let breakdown = breakdown::execute(arch, &*capstone, insn_bytes, is_user);
-
-            breaks.push(breakdown);
-
-            // Get next instruction base addr
-            curr_hva += insn_size as u64;
+            total_bytes += insn_size;
         }
+
+        let insn_ptr = hva as *const u8;
+        let insn_bytes: &[u8] = slice::from_raw_parts(insn_ptr, total_bytes);
+        let arch = ARCH.get_unchecked();
+        let capstone = CS.get_unchecked().get();
+
+        let breaks = breakdown::execute(arch, &*capstone, insn_bytes, is_user);
 
         let count = vec![0usize; *N_CORES.get().unwrap()];
         let tb_ctx = TransBlockContextPtr::new(TransBlockContext { count, breaks });
@@ -258,3 +252,35 @@ unsafe extern "C" fn qemu_plugin_install(
 
     return 0;
 }
+
+/*
+    if !context_map.contains_key(&hva) {
+        drop(context_map);
+        let mut breaks: Vec<BreakdownData> = Vec::new();
+        let mut curr_hva = hva;
+        for idx in 0..n_inst {
+            let insn = qemu_plugin_tb_get_insn(tb, idx);
+            let insn_size = qemu_plugin_insn_size(insn) as usize;
+            let insn_ptr = qemu_plugin_insn_data(insn) as *const u8;
+            let insn_bytes: &[u8] = slice::from_raw_parts(insn_ptr, insn_size);
+
+            let is_user = qemu_plugin_is_userland(insn);
+
+            let arch = ARCH.get_unchecked();
+            let capstone = CS.get_unchecked().get();
+
+            let breakdown = breakdown::execute(arch, &*capstone, insn_bytes, is_user);
+
+            breaks.push(breakdown);
+
+            // Get next instruction base addr
+            curr_hva += insn_size as u64;
+        }
+
+        let count = vec![0usize; *N_CORES.get().unwrap()];
+        let tb_ctx = TransBlockContextPtr::new(TransBlockContext { count, breaks });
+
+        let mut context_map = TB_HASHMAP.write().unwrap();
+        context_map.insert(hva, tb_ctx);
+    }
+*/

@@ -297,6 +297,7 @@ fn main() -> Result<(), io::Error> {
         let fp_groups = ["sse1", "sse2", "sse41", "sse42", "ssse3", "fpu"];
         let crypto_groups = ["adx", "aes", "pclmul"];
         let others_groups = ["not64bitmode", "fsgsbse"];
+        let mem_mnemonics = ["mov", "ins", "stosd", "push", "pop", "leave"];
 
         loop {
             let t = get_next_trace_x86(&mut buf);
@@ -337,43 +338,50 @@ fn main() -> Result<(), io::Error> {
                 for op in ops {
                     match op.op_type {
                         X86OperandType::Mem(_) => {
-                            match op.access {
-                                Some(RegAccessType::ReadOnly) => inst_loads += 1,
-                                Some(RegAccessType::WriteOnly) => inst_stores += 1,
-                                Some(RegAccessType::ReadWrite) => {
-                                    if mnemonic.contains("test") {
-                                        inst_loads += 1;
-                                    } else {
-                                        inst_loads += 1;
-                                        inst_stores += 1;
-                                    }
-                                },
-                                _ => {
-                                    // For some reason ins and movzx din't have operation
-                                    if mnemonic.contains("ins") || mnemonic.contains("movzx") {
-                                        inst_loads += 1;
-                                        inst_stores += 1;
-                                    } else if mnemonic.contains("test") || mnemonic.contains("cvtsi2s") {
-                                        inst_loads += 1;
-                                    } else if mnemonic.contains("outs") {
-                                        inst_stores += 1;
-                                    } else {
-                                        println!("Did not find what kind of memory operation: {:?}", detail);
-                                        println!("{}", i);
-                                        let output: &[(&str, String)] = &[
-                                            ("insn id:", format!("{:?}", i.id().0)),
-                                            ("bytes:", format!("{:?}", i.bytes())),
-                                            ("read regs:", reg_names(&cs, detail.regs_read())),
-                                            ("write regs:", reg_names(&cs, detail.regs_write())),
-                                            ("insn groups:", group_names(&cs, detail.groups())),
-                                        ];
+                            if mnemonic.contains("lea") {
 
-                                        for &(ref name, ref message) in output.iter() {
-                                            println!("{:4}{:12} {}", "", name, message);
+                            } else {
+                                match op.access {
+                                    Some(RegAccessType::ReadOnly) => inst_loads += 1,
+                                    Some(RegAccessType::WriteOnly) => inst_stores += 1,
+                                    Some(RegAccessType::ReadWrite) => {
+                                        if mnemonic.contains("test") {
+                                            inst_loads += 1;
+                                        } else if mnemonic.contains("leave") {
+                                            inst_loads += 1;
+                                        } else {
+                                            inst_loads += 1;
+                                            inst_stores += 1;
                                         }
+                                    },
 
-                                        for op in arch_detail.operands() {
-                                            println!("{:8}{:?}", "", op);
+                                    _ => {
+                                        // For some reason ins and movzx din't have operation
+                                        if mnemonic.contains("ins") || mnemonic.contains("movzx") {
+                                            inst_loads += 1;
+                                            inst_stores += 1;
+                                        } else if mnemonic.contains("test") || mnemonic.contains("cvtsi2s") {
+                                            inst_loads += 1;
+                                        } else if mnemonic.contains("outs") {
+                                            inst_stores += 1;
+                                        } else {
+                                            println!("Did not find what kind of memory operation: {:?}", detail);
+                                            println!("{}", i);
+                                            let output: &[(&str, String)] = &[
+                                                ("insn id:", format!("{:?}", i.id().0)),
+                                                ("bytes:", format!("{:?}", i.bytes())),
+                                                ("read regs:", reg_names(&cs, detail.regs_read())),
+                                                ("write regs:", reg_names(&cs, detail.regs_write())),
+                                                ("insn groups:", group_names(&cs, detail.groups())),
+                                            ];
+
+                                            for &(ref name, ref message) in output.iter() {
+                                                println!("{:4}{:12} {}", "", name, message);
+                                            }
+
+                                            for op in arch_detail.operands() {
+                                                println!("{:8}{:?}", "", op);
+                                            }
                                         }
                                     }
                                 }
@@ -381,6 +389,11 @@ fn main() -> Result<(), io::Error> {
                         },
                         X86OperandType::Reg(_) => {
                             regs_access += 1;
+                            if mnemonic.contains("push") {
+                                inst_stores += 1;
+                            } else if mnemonic.contains("pop") {
+                                inst_loads += 1;
+                            }
                         },
                         _ => (),
                     }
@@ -394,27 +407,6 @@ fn main() -> Result<(), io::Error> {
                 let mut is_crypto = false;
                 let mut is_priviledge = false;
                 let mut is_others_special = false;
-
-                if regs_access >= 2 || has_multi_mem {
-                    println!("Multi Access: reg[{}]:mem[{}] {:?}", regs_access, inst_loads + inst_stores, detail);
-                    println!("{}", i);
-                    let output: &[(&str, String)] = &[
-                        ("insn id:", format!("{:?}", i.id().0)),
-                        ("bytes:", format!("{:?}", i.bytes())),
-                        ("read regs:", reg_names(&cs, detail.regs_read())),
-                        ("write regs:", reg_names(&cs, detail.regs_write())),
-                        ("insn groups:", group_names(&cs, detail.groups())),
-                    ];
-                    for &(ref name, ref message) in output.iter() {
-                        println!("{:4}{:12} {}", "", name, message);
-                    }
-
-                    for op in arch_detail.operands() {
-                        println!("{:8}{:?}", "", op);
-                    }
-                }
-
-
 
                 for cate in branch_groups {
                     if group.contains(cate) {
@@ -444,9 +436,10 @@ fn main() -> Result<(), io::Error> {
                     }
                 }
 
-                if mnemonic.contains("mov") || mnemonic.contains("lea") || 
-                    mnemonic.contains("ins") || mnemonic.contains("stosd") {
-                    is_mem = true;
+                for pat in mem_mnemonics {
+                    if mnemonic.contains(pat) {
+                        is_mem = true;
+                    }
                 }
                 
 
@@ -536,7 +529,6 @@ fn main() -> Result<(), io::Error> {
 
                     curr_inst += 1usize;
                 
-
                     let detail: InsnDetail = cs.insn_detail(&i).expect("Failed to get insn detail");
                     let mnemonic = i.mnemonic().unwrap().to_string();
                     let arch_detail = detail.arch_detail();
@@ -562,14 +554,6 @@ fn main() -> Result<(), io::Error> {
                                     inst_loads += 2;
                                 } else if mnemonic.contains("ld") {
                                     inst_loads += 1;
-                                //} else if mnemonic.contains("casal") || mnemonic.contains("caspal")  {
-                                //    inst_stores += 1;
-                                //    inst_loads += 1;
-                                //} else if mnemonic.contains("casl") || mnemonic.contains("caspl"){
-                                //    inst_stores += 1;
-                                //} else if mnemonic.contains("casa") || mnemonic.contains("caspa") {
-                                //    inst_loads += 1;
-                                // Compare and Swap
                                 } else if mnemonic.contains("cas") || mnemonic.contains("swp"){
                                     inst_stores += 1;
                                     inst_loads += 1;
@@ -595,7 +579,7 @@ fn main() -> Result<(), io::Error> {
                                     }
                                 }
                             },
-                            Arm64OperandType::Reg(value) = {
+                            Arm64OperandType::Reg(value) => {
                                 regs_access += 1;
                             }
                             _ => print!("")

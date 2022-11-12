@@ -506,12 +506,11 @@ fn extract_memops_x86(
         }
     }
     if !is_mem && loads + stores != 0 {
-        log::warn!("Non memory with {} ld {} st mem access: {:}", loads, stores, insn);
-    }
-
-    let ptr = format!("{}", insn);
-    if ptr.contains("ptr")  && loads + stores == 0 {
-        log::warn!("Ptr memory with no mem access: {:}", insn);
+        //log::warn!("Non memory with {} ld {} st mem access: {:}", loads, stores, insn);
+        let insn_str= format!("{}", insn);
+        if !insn_str.contains("ptr") {
+            log::warn!("Ptr memory with no mem access: {:}", insn);
+        }
     }
 
     return (loads, stores);

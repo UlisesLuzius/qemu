@@ -19,6 +19,10 @@ use std::thread;
 #[warn(non_snake_case)]
 use std::time::Duration;
 use std::{mem, ptr};
+use log::LevelFilter;
+use log4rs::append::file::FileAppender;
+use log4rs::encode::pattern::PatternEncoder;
+use log4rs::config::{Appender, Config, Root};
 
 use crate::breakdown::BreakdownCategories;
 
@@ -245,6 +249,18 @@ unsafe extern "C" fn qemu_plugin_install(
         categories_maps.push(BreakdownCategories::new());
     }
 
+    let logfile = FileAppender::builder()
+    .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+    .build("log/output.log").expect("Open logfile failed");
+
+    let config = Config::builder()
+    .appender(Appender::builder().build("logfile", Box::new(logfile)))
+    .build(Root::builder()
+               .appender("logfile")
+               .build(LevelFilter::Info)).expect("Log Config init");
+
+    log4rs::init_config(config).expect("Log failed to init");
+
     // register translation block function
     qemu_plugin_register_vcpu_tb_trans_cb(id, Some(vcpu_tb_trans));
     // register exit function
@@ -252,35 +268,3 @@ unsafe extern "C" fn qemu_plugin_install(
 
     return 0;
 }
-
-/*
-    if !context_map.contains_key(&hva) {
-        drop(context_map);
-        let mut breaks: Vec<BreakdownData> = Vec::new();
-        let mut curr_hva = hva;
-        for idx in 0..n_inst {
-            let insn = qemu_plugin_tb_get_insn(tb, idx);
-            let insn_size = qemu_plugin_insn_size(insn) as usize;
-            let insn_ptr = qemu_plugin_insn_data(insn) as *const u8;
-            let insn_bytes: &[u8] = slice::from_raw_parts(insn_ptr, insn_size);
-
-            let is_user = qemu_plugin_is_userland(insn);
-
-            let arch = ARCH.get_unchecked();
-            let capstone = CS.get_unchecked().get();
-
-            let breakdown = breakdown::execute(arch, &*capstone, insn_bytes, is_user);
-
-            breaks.push(breakdown);
-
-            // Get next instruction base addr
-            curr_hva += insn_size as u64;
-        }
-
-        let count = vec![0usize; *N_CORES.get().unwrap()];
-        let tb_ctx = TransBlockContextPtr::new(TransBlockContext { count, breaks });
-
-        let mut context_map = TB_HASHMAP.write().unwrap();
-        context_map.insert(hva, tb_ctx);
-    }
-*/

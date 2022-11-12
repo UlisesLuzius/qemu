@@ -409,11 +409,11 @@ static ARM_MNEMONICS_MEM: [&str; 7] = ["stp", "ldp", "ld", "st", "cas", "prfm", 
     //     panic!("Wrong arch type");
     // };
     // let bytes = insn_bytes.as_slice();
- 
+
 pub fn execute(arch: &String, cs: &Capstone, inst_bytes: &[u8], is_user: bool) -> Vec<BreakdownData> {
     let insts = cs.disasm_all(inst_bytes, 0).unwrap();
     if insts.len() == 0 {
-        panic!("No insts decoded, bytes: {:?}", inst_bytes);
+        log::warn!("FAIL DISASM: {:?}", inst_bytes);
     }
 
     let mut breaks: Vec<BreakdownData> = Vec::new();
@@ -442,55 +442,70 @@ fn extract_memops_x86(
     insn: &Insn,
     ops: X86OperandIterator,
     mnemonic: &String,
-    inst_loads: &mut usize,
-    inst_stores: &mut usize,
-) {
-    for op in ops {
-        match op.op_type {
-            X86OperandType::Mem(_) => {
-                if mnemonic.contains("lea") {
-                    // Not a memory instruction
-                } else {
-                    match op.access {
-                        Some(RegAccessType::ReadOnly) => *inst_loads += 1,
-                        Some(RegAccessType::WriteOnly) => *inst_stores += 1,
-                        Some(RegAccessType::ReadWrite) => {
-                            if mnemonic.contains("test") {
-                                *inst_loads += 1;
-                            } else if mnemonic.contains("leave") {
-                                *inst_loads += 1;
-                            } else {
-                                *inst_loads += 1;
-                                *inst_stores += 1;
+) -> (usize, usize) {
+    // push and pop do not contain Mem for some reason
+    let mut inst_loads = 0;
+    let mut inst_stores = 0;
+    if mnemonic.contains("push") {
+        inst_stores += 1;
+    } else if mnemonic.contains("pop") {
+        inst_loads += 1;
+    } else {
+        for op in ops.clone() {
+            match op.op_type {
+                X86OperandType::Mem(_) => {
+                    if mnemonic.contains("lea") {
+                        // Not a memory instruction
+                    } else {
+                        match op.access {
+                            Some(RegAccessType::ReadOnly) => {
+                                log_inst_x86(insn, "ReadOnly".to_string(), ops.clone());
+                                inst_loads += 1
+                            },
+                            Some(RegAccessType::WriteOnly) => {
+                                log_inst_x86(insn, "WriteOnly".to_string(), ops.clone());
+                                inst_stores += 1
+                            },
+                            Some(RegAccessType::ReadWrite) => {
+                                if mnemonic.contains("test") {
+                                    inst_loads += 1;
+                                } else if mnemonic.contains("leave") {
+                                    inst_loads += 1;
+                                } else {
+                                    log_inst_x86(insn, "ReadWrite".to_string(), ops.clone());
+                                    inst_loads += 1;
+                                    inst_stores += 1;
+                                }
                             }
-                        }
-                        _ => {
-                            // For some reason `ins` and `movzx` didn't have move operation
-                            if mnemonic.contains("ins") || mnemonic.contains("movzx") {
-                                *inst_loads += 1;
-                                *inst_stores += 1;
-                            } else if mnemonic.contains("test") || mnemonic.contains("cvtsi2s") {
-                                *inst_loads += 1;
-                            } else if mnemonic.contains("outs") {
-                                *inst_stores += 1;
-                            } else {
-                                println!("Did not find what kind of memory operation:");
-                                println! {"{}", insn};
+                            _ => {
+                                // For some reason `ins` and `movzx` didn't have ld/st operation
+                                if mnemonic.contains("ins") || mnemonic.contains("movzx") {
+                                    inst_loads += 1;
+                                    inst_stores += 1;
+                                } else if mnemonic.contains("test") || mnemonic.contains("cvtsi2s") {
+                                    inst_loads += 1;
+                                } else if mnemonic.contains("outs") {
+                                    inst_stores += 1;
+                                } else {
+                                    println!("Did not find what kind of memory operation:");
+                                    println! {"{}", insn};
+                                }
                             }
                         }
                     }
                 }
+                _ => (),
             }
-            _ => (),
         }
     }
 
-    // push and pop do not contain Mem for some reason
-    if mnemonic.contains("push") {
-        *inst_stores += 1;
-    } else if mnemonic.contains("pop") {
-        *inst_loads += 1;
+    for mnem in X86_MEM_MNEMONICS {
+        if mnemonic.contains(mnem) && inst_loads + inst_stores == 0 {
+            log::warn!("Memory with no meme accesss");
+            log_inst_x86(insn, "FAIL".to_string(), ops.clone());
+        }
     }
+    return (inst_loads, inst_stores);
 }
 
 fn extract_memops_arm(
@@ -519,6 +534,7 @@ fn extract_memops_arm(
                 } else {
                     println!("Did not find what kind of memory operation:");
                     println!("{}", insn);
+                    panic!("Failed to detect memory type");
                 }
             }
             _ => (),
@@ -628,12 +644,12 @@ fn execute_x86(
     is_user: bool,
     byte_len: usize,
 ) -> BreakdownData {
-    let mut inst_loads = 0;
-    let mut inst_stores = 0;
+    let inst_loads = 0;
+    let inst_stores = 0;
     let x86_detail = arch_detail.x86().unwrap();
     let ops = x86_detail.operands();
 
-    extract_memops_x86(insn, ops, &mnemonic, &mut inst_loads, &mut inst_stores);
+    let (inst_loads, inst_stores) = extract_memops_x86(insn, ops, &mnemonic);
 
     let has_multi_mem = inst_loads + inst_stores >= 2;
     let has_mem = inst_loads + inst_stores >= 1;

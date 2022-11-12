@@ -444,12 +444,12 @@ fn extract_memops_x86(
     mnemonic: &String,
 ) -> (usize, usize) {
     // push and pop do not contain Mem for some reason
-    let mut inst_loads = 0;
-    let mut inst_stores = 0;
+    let mut loads = 0;
+    let mut stores = 0;
     if mnemonic.contains("push") {
-        inst_stores += 1;
+        stores += 1;
     } else if mnemonic.contains("pop") {
-        inst_loads += 1;
+        loads += 1;
     } else {
         for op in ops.clone() {
             match op.op_type {
@@ -459,33 +459,30 @@ fn extract_memops_x86(
                     } else {
                         match op.access {
                             Some(RegAccessType::ReadOnly) => {
-                                log_inst_x86(insn, "ReadOnly".to_string(), ops.clone());
-                                inst_loads += 1
+                                loads += 1
                             },
                             Some(RegAccessType::WriteOnly) => {
-                                log_inst_x86(insn, "WriteOnly".to_string(), ops.clone());
-                                inst_stores += 1
+                                stores += 1
                             },
                             Some(RegAccessType::ReadWrite) => {
                                 if mnemonic.contains("test") {
-                                    inst_loads += 1;
+                                    loads += 1;
                                 } else if mnemonic.contains("leave") {
-                                    inst_loads += 1;
+                                    loads += 1;
                                 } else {
-                                    log_inst_x86(insn, "ReadWrite".to_string(), ops.clone());
-                                    inst_loads += 1;
-                                    inst_stores += 1;
+                                    loads += 1;
+                                    stores += 1;
                                 }
                             }
                             _ => {
                                 // For some reason `ins` and `movzx` didn't have ld/st operation
                                 if mnemonic.contains("ins") || mnemonic.contains("movzx") {
-                                    inst_loads += 1;
-                                    inst_stores += 1;
+                                    loads += 1;
+                                    stores += 1;
                                 } else if mnemonic.contains("test") || mnemonic.contains("cvtsi2s") {
-                                    inst_loads += 1;
+                                    loads += 1;
                                 } else if mnemonic.contains("outs") {
-                                    inst_stores += 1;
+                                    stores += 1;
                                 } else {
                                     println!("Did not find what kind of memory operation:");
                                     println! {"{}", insn};
@@ -499,13 +496,20 @@ fn extract_memops_x86(
         }
     }
 
+    let mut is_mem = false;
     for mnem in X86_MEM_MNEMONICS {
-        if mnemonic.contains(mnem) && inst_loads + inst_stores == 0 {
-            log::warn!("Memory with no meme accesss");
-            log_inst_x86(insn, "FAIL".to_string(), ops.clone());
+        if mnemonic.contains(mnem) {
+            is_mem = true;
+            if loads + stores == 0 {
+                log::warn!("Memory with no meme accesss: {:?}", insn);
+                log_inst_x86(insn, "FAIL".to_string(), ops.clone());
+            }
         }
     }
-    return (inst_loads, inst_stores);
+    if !is_mem && loads + stores == 0 {
+        log::warn!("Non memory with {} ld {} st mem access: {:?}", loads, stores, insn)
+    }
+    return (loads, stores);
 }
 
 fn extract_memops_arm(

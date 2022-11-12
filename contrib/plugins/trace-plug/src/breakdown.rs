@@ -501,15 +501,16 @@ fn extract_memops_x86(
         if mnemonic.contains(mnem) {
             is_mem = true;
             if loads + stores == 0 {
-                log::warn!("Memory with no meme accesss: {:?}", insn);
+                log::warn!("Memory with no meme accesss: {:}", insn);
                 log_inst_x86(insn, "FAIL".to_string(), ops.clone());
             }
         }
     }
-    if !is_mem && loads + stores == 0 {
-        log::warn!("Non memory with {} ld {} st mem access: {:?}", loads, stores, insn);
+    if !is_mem && loads + stores != 0 {
+        log::warn!("Non memory with {} ld {} st mem access: {:}", loads, stores, insn);
         log_inst_x86(insn, "FAIL".to_string(), ops.clone());
     }
+
     return (loads, stores);
 }
 

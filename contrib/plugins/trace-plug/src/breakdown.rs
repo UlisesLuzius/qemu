@@ -821,7 +821,7 @@ fn execute_arm(
     );
 
     if is_simd {
-        let simd_sizes = ["8b", "16b", "4h", "8h", "2s", "4s"];
+        let simd_sizes = ["8b", "16b", "4h", "8h", "2s", "4s", "1d", "2d"];
         let insn_str = format!("{}", insn).to_lowercase();
         let no_mnem = insn_str
             .split(" ")

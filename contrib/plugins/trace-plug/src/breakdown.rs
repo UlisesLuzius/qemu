@@ -9,6 +9,7 @@ use capstone::arch::x86::{
 };
 use capstone::arch::ArchOperand;
 use capstone::{prelude::*, Insn, Instructions, RegAccessType};
+use regex::Regex;
 use std::collections::HashMap;
 
 #[derive(Debug)]
@@ -62,8 +63,8 @@ pub struct BreakdownData {
     pub group: GroupTypeEnum,
     pub is_user: bool,
     pub byte_len: usize,
-    pub inst_loads: usize,
-    pub inst_stores: usize,
+    pub loads: usize,
+    pub stores: usize,
     pub is_br: bool,
     pub is_priviledge: bool,
     pub is_mem: bool,
@@ -81,8 +82,8 @@ impl Default for BreakdownData {
             group: GroupTypeEnum::CAT_OTHERS,
             is_user: false,
             byte_len: 0,
-            inst_loads: 0,
-            inst_stores: 0,
+            loads: 0,
+            stores: 0,
             is_br: false,
             is_priviledge: false,
             is_mem: false,
@@ -171,8 +172,8 @@ impl Breakdown {
         };
 
         self.byte_sizes[idx][data.byte_len] += count;
-        self.tot_load[idx] += data.inst_loads * count;
-        self.tot_store[idx] += data.inst_stores * count;
+        self.tot_load[idx] += data.loads * count;
+        self.tot_store[idx] += data.stores * count;
 
         if data.is_br {
             self.is_br[idx] += count;
@@ -399,18 +400,12 @@ static ARM_GROUPS_CRYPTO: [&str; 1] = ["crypto"];
 static ARM_GROUPS_OTHERS: [&str; 1] = ["pointer"];
 static ARM_MNEMONICS_MEM: [&str; 7] = ["stp", "ldp", "ld", "st", "cas", "prfm", "swp"];
 
-    // let insn_bytes = if arch == "x86" {
-    //     let mut vec = inst_bytes.to_vec();
-    //     vec.reverse();
-    //     vec
-    // } else if arch == "arm" {
-    //     inst_bytes.to_vec()
-    // } else {
-    //     panic!("Wrong arch type");
-    // };
-    // let bytes = insn_bytes.as_slice();
-
-pub fn execute(arch: &String, cs: &Capstone, inst_bytes: &[u8], is_user: bool) -> Vec<BreakdownData> {
+pub fn execute(
+    arch: &String,
+    cs: &Capstone,
+    inst_bytes: &[u8],
+    is_user: bool,
+) -> Vec<BreakdownData> {
     let insts = cs.disasm_all(inst_bytes, 0).unwrap();
     if insts.len() == 0 {
         log::warn!("FAIL DISASM: {:?}", inst_bytes);
@@ -431,21 +426,21 @@ pub fn execute(arch: &String, cs: &Capstone, inst_bytes: &[u8], is_user: bool) -
                 mnemonic,
                 groups,
                 is_user,
-                inst_bytes.len(),
+                insn.len(),
             ));
         }
     }
-   return breaks;
+    return breaks;
 }
 
-fn extract_memops_x86(
-    insn: &Insn,
-    ops: X86OperandIterator,
-    mnemonic: &String,
-) -> (usize, usize) {
+fn extract_memops_x86(insn: &Insn, ops: X86OperandIterator, mnemonic: &String) -> (usize, usize) {
     // push and pop do not contain Mem for some reason
     let mut loads = 0;
     let mut stores = 0;
+    let insn_str = format!("{}", insn);
+    let contains_ptr = insn_str.contains("ptr");
+    let mut is_mem = false;
+
     if mnemonic.contains("push") {
         stores += 1;
     } else if mnemonic.contains("pop") {
@@ -454,41 +449,52 @@ fn extract_memops_x86(
         for op in ops.clone() {
             match op.op_type {
                 X86OperandType::Mem(_) => {
-                    if mnemonic.contains("lea") {
-                        // Not a memory instruction
-                    } else {
-                        match op.access {
-                            Some(RegAccessType::ReadOnly) => {
-                                loads += 1
-                            },
-                            Some(RegAccessType::WriteOnly) => {
-                                stores += 1
-                            },
-                            Some(RegAccessType::ReadWrite) => {
-                                if mnemonic.contains("test") {
+                    is_mem = true;
+                    if contains_ptr {
+                        if mnemonic.contains("test") {
+                            loads += 1;
+                        } else if mnemonic.contains("leave") {
+                            loads += 1;
+                        } else if mnemonic.contains("outs") {
+                            stores += 1;
+                        } else {
+                            match op.access {
+                                Some(RegAccessType::ReadOnly) => {
                                     loads += 1;
-                                } else if mnemonic.contains("leave") {
-                                    loads += 1;
-                                } else {
+                                }
+                                Some(RegAccessType::WriteOnly) => {
+                                    stores += 1;
+                                }
+                                Some(RegAccessType::ReadWrite) => {
                                     loads += 1;
                                     stores += 1;
                                 }
-                            }
-                            _ => {
-                                // For some reason `ins` and `movzx` didn't have ld/st operation
-                                if mnemonic.contains("ins") || mnemonic.contains("movzx") {
-                                    loads += 1;
-                                    stores += 1;
-                                } else if mnemonic.contains("test") || mnemonic.contains("cvtsi2s") {
-                                    loads += 1;
-                                } else if mnemonic.contains("outs") {
-                                    stores += 1;
-                                } else {
-                                    println!("Did not find what kind of memory operation:");
-                                    println! {"{}", insn};
+                                _ => {
+                                    // For some reason `ins` and `movzx` didn't have ld/st operation
+                                    if mnemonic.contains("ins") || mnemonic.contains("movzx") {
+                                        loads += 1;
+                                        stores += 1;
+                                    } else if mnemonic.contains("cvtsi2s") {
+                                        loads += 1;
+                                    } else if mnemonic.contains("outs") {
+                                        stores += 1;
+                                    } else if mnemonic.contains("palignr") {
+                                        loads += 1;
+                                    } else {
+                                        panic!(
+                                            "Did not find what kind of memory operation: {}",
+                                            insn
+                                        );
+                                    }
                                 }
                             }
                         }
+                    } else if mnemonic.contains("sgdt") {
+                        stores += 1;
+                    } else if mnemonic.contains("lea") {
+                        loads += 1;
+                    } else {
+                        panic!("Not known memory access: {:}", insn);
                     }
                 }
                 _ => (),
@@ -496,58 +502,114 @@ fn extract_memops_x86(
         }
     }
 
-    let mut is_mem = false;
-    for mnem in X86_MEM_MNEMONICS {
-        if mnemonic.contains(mnem) {
-            is_mem = true;
-            if loads + stores == 0 {
-                log::warn!("Memory with no meme accesss: {:}", insn);
-            }
-        }
+    let has_mem = loads + stores > 0;
+
+    if contains_ptr && !has_mem {
+        panic!("Ptr with no mem access: {:}", insn);
     }
-    if !is_mem && loads + stores != 0 {
-        //log::warn!("Non memory with {} ld {} st mem access: {:}", loads, stores, insn);
-        let insn_str= format!("{}", insn);
-        if !insn_str.contains("ptr") {
-            log::warn!("Ptr memory with no mem access: {:}", insn);
-        }
+
+    if is_mem && !has_mem {
+        panic!("Mem with no accesses: {:}", insn);
+    }
+
+    if !is_mem
+        && has_mem
+        && !insn_str.contains("ptr")
+        && !(mnemonic.contains("push") || mnemonic.contains("pop"))
+    {
+        panic!("Non memory with mem access: {:}", insn);
     }
 
     return (loads, stores);
 }
 
-fn extract_memops_arm(
-    insn: &Insn,
-    ops: Arm64OperandIterator,
-    mnemonic: &String,
-    inst_loads: &mut usize,
-    inst_stores: &mut usize,
-) {
-    for op in ops {
-        match op.op_type {
-            Arm64OperandType::Mem(value) => {
-                if mnemonic.contains("stp") {
-                    *inst_stores += 2;
-                } else if mnemonic.contains("st") {
-                    *inst_stores += 1;
-                } else if mnemonic.contains("ldp") {
-                    *inst_loads += 2;
-                } else if mnemonic.contains("ld") {
-                    *inst_loads += 1;
-                } else if mnemonic.contains("cas") || mnemonic.contains("swp") {
-                    *inst_stores += 1;
-                    *inst_loads += 1;
-                } else if mnemonic.contains("prfm") {
-                    *inst_loads += 1;
-                } else {
-                    println!("Did not find what kind of memory operation:");
-                    println!("{}", insn);
-                    panic!("Failed to detect memory type");
+fn extract_memops_arm(insn: &Insn, ops: Arm64OperandIterator, mnemonic: &String) -> (usize, usize) {
+    let mut loads = 0;
+    let mut stores = 0;
+    if mnemonic.contains("stp") {
+        stores += 2;
+    } else if mnemonic.contains("st") {
+        stores += 1;
+    } else if mnemonic.contains("ldp") {
+        loads += 2;
+    } else if mnemonic.contains("ld") {
+        loads += 1;
+    } else if mnemonic.contains("cas") || mnemonic.contains("swp") {
+        stores += 1;
+        loads += 1;
+    } else if mnemonic.contains("prfm") {
+        loads += 1;
+    } else {
+        for op in ops {
+            match op.op_type {
+                Arm64OperandType::Mem(value) => {
+                    panic!("Failed to detect memory type: {}", insn);
                 }
+                _ => (),
             }
-            _ => (),
         }
     }
+    return (loads, stores);
+}
+
+fn extract_uops_mem_arm(insn: &Insn, mnemonic: &String) -> usize {
+    let mut uops = 0;
+    let insn_str = format!("{}", insn).to_lowercase();
+    let re_match_preidx = Regex::new(r"\[.*\]!").unwrap();
+    let re_match_postidx = Regex::new(r"\[.*\],.*[#xrw]").unwrap();
+    if re_match_preidx.is_match(&insn_str) {
+        log::warn!("Found preidx: {}", insn);
+        uops += 1;
+    } else if re_match_postidx.is_match(&insn_str) {
+        log::warn!("Found postidx: {}", insn);
+        uops += 1;
+    }
+    return uops;
+}
+
+fn extract_uops_extra_others(insn: &Insn, mnemonic: &String) -> usize {
+    let mut uops = 0;
+    let insn_str = format!("{}", insn).to_lowercase();
+    let re_match_decodebitmask = Regex::new(r"(and|orr|ands|tst|eor).*#0x").unwrap();
+    let shifted_regs_mnemonics = ["ror", "lsr", "asr", "lsl"];
+    let mut is_shift = false;
+    let mut has_shift = false;
+    for mnem in shifted_regs_mnemonics {
+        if mnemonic.contains(mnem) {
+            is_shift = true;
+        }
+    }
+
+    if !is_shift {
+        let no_mnem = insn_str
+            .split(" ")
+            .skip(1)
+            .fold("".to_string(), |acc, str| acc + str);
+        for str_shift in shifted_regs_mnemonics {
+            if no_mnem.contains(str_shift) {
+                log::warn!("Found shifted reg: {}", insn);
+                uops += 1;
+                has_shift = true;
+            }
+        }
+
+        let re_match_with_shift = Regex::new("(ror|lsr|asr|lsl)").unwrap();
+        if !has_shift && re_match_with_shift.is_match(&insn_str) {
+            panic!("Matched shift without extra op: {}", insn);
+        } else if re_match_decodebitmask.is_match(&insn_str) {
+            log::warn!("Found with DecodeBitMask imm: {}", insn);
+            uops += 1;
+        }
+    }
+
+    if mnemonic.contains("bfm") {
+        assert!(uops == 0);
+        // BFM like Logic Immediate uses DecodeBitMask
+        log::warn!("Found with DecodeBitMask BFM: {}", insn);
+        uops += 1
+    }
+
+    return uops;
 }
 
 fn extract_data(
@@ -555,8 +617,8 @@ fn extract_data(
     byte_len: usize,
     groups: String,
     mnemonic: String,
-    inst_loads: usize,
-    inst_stores: usize,
+    loads: usize,
+    stores: usize,
     branch_groups: Vec<&str>,
     fp_groups: Vec<&str>,
     crypto_groups: Vec<&str>,
@@ -564,9 +626,9 @@ fn extract_data(
     mem_mnemonics: Vec<&str>,
     fp_mnemonics: Vec<&str>,
 ) -> BreakdownData {
-    let has_multi_mem = inst_loads + inst_stores >= 2;
-    let has_mem = inst_loads + inst_stores >= 1;
-    let has_both_mem = inst_loads >= 1 && inst_stores >= 1;
+    let has_multi_mem = loads + stores >= 2;
+    let has_mem = loads + stores >= 1;
+    let has_both_mem = loads >= 1 && stores >= 1;
     let mut is_br = false;
     let mut is_mem = false;
     let mut is_fp = false;
@@ -598,10 +660,13 @@ fn extract_data(
         }
     }
 
-    for mnem in mem_mnemonics {
-        if mnemonic.contains(mnem) {
-            is_mem = true;
+    if has_mem {
+        for mnem in mem_mnemonics {
+            if mnemonic.contains(mnem) {
+                is_mem = true;
+            }
         }
+        if !is_mem {}
     }
 
     if groups.contains("priviledge") {
@@ -629,8 +694,8 @@ fn extract_data(
         group,
         is_user,
         byte_len,
-        inst_loads,
-        inst_stores,
+        loads,
+        stores,
         is_br,
         is_priviledge,
         is_mem,
@@ -652,24 +717,30 @@ fn execute_x86(
     is_user: bool,
     byte_len: usize,
 ) -> BreakdownData {
-    let inst_loads = 0;
-    let inst_stores = 0;
+    let loads = 0;
+    let stores = 0;
     let x86_detail = arch_detail.x86().unwrap();
     let ops = x86_detail.operands();
 
-    let (inst_loads, inst_stores) = extract_memops_x86(insn, ops, &mnemonic);
+    let (loads, stores) = extract_memops_x86(insn, ops, &mnemonic);
 
-    let has_multi_mem = inst_loads + inst_stores >= 2;
-    let has_mem = inst_loads + inst_stores >= 1;
-    let has_both_mem = inst_loads >= 1 && inst_stores >= 1;
+    let has_multi_mem = loads + stores >= 2;
+    let has_mem = loads + stores >= 1;
+    let has_both_mem = loads >= 1 && stores >= 1;
+
+    for cate in X86_GROUPS_FP.to_vec() {
+        if groups.contains(cate) {
+            log::warn!("Is FP: {}", insn);
+        }
+    }
 
     let data = extract_data(
         is_user,
         byte_len,
         groups,
         mnemonic,
-        inst_loads,
-        inst_stores,
+        loads,
+        stores,
         X86_GROUPS_BRANCH.to_vec(),
         X86_GROUPS_FP.to_vec(),
         X86_GROUPS_CRYPTO.to_vec(),
@@ -691,18 +762,37 @@ fn execute_arm(
     let arm64_detail = arch_detail.arm64().unwrap();
     let ops = arm64_detail.operands();
 
-    let mut inst_loads = 0;
-    let mut inst_stores = 0;
+    let loads = 0;
+    let stores = 0;
 
-    extract_memops_arm(insn, ops, &mnemonic, &mut inst_loads, &mut inst_stores);
+    let (loads, stores) = extract_memops_arm(insn, ops, &mnemonic);
+    let mut is_mem = false;
+    for mnem in ARM_MNEMONICS_MEM.iter() {
+        if mnemonic.contains(mnem) {
+            is_mem = true;
+        }
+    }
+
+    let mut uops = 0;
+    if is_mem {
+        uops = extract_uops_mem_arm(insn, &mnemonic);
+    } else {
+        uops = extract_uops_extra_others(insn, &mnemonic);
+    }
+
+    for cate in X86_GROUPS_FP.to_vec() {
+        if groups.contains(cate) {
+            log::warn!("Is FP: {}", insn);
+        }
+    }
 
     let data = extract_data(
         is_user,
         4,
         groups,
         mnemonic,
-        inst_loads,
-        inst_stores,
+        loads,
+        stores,
         ARM_GROUPS_BRANCH.to_vec(),
         ARM_GROUPS_FP.to_vec(),
         ARM_GROUPS_CRYPTO.to_vec(),

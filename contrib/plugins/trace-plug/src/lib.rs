@@ -5,6 +5,10 @@ use breakdown::{get_capstone, BreakdownData};
 use capstone::Capstone;
 use core::slice;
 use lazy_static::lazy_static;
+use log::LevelFilter;
+use log4rs::append::file::FileAppender;
+use log4rs::config::{Appender, Config, Root};
+use log4rs::encode::pattern::PatternEncoder;
 use once_cell::sync::OnceCell;
 use qemu_plugin::*;
 use std::collections::{HashMap, HashSet};
@@ -19,10 +23,6 @@ use std::thread;
 #[warn(non_snake_case)]
 use std::time::Duration;
 use std::{mem, ptr};
-use log::LevelFilter;
-use log4rs::append::file::FileAppender;
-use log4rs::encode::pattern::PatternEncoder;
-use log4rs::config::{Appender, Config, Root};
 
 use crate::breakdown::BreakdownCategories;
 
@@ -92,7 +92,7 @@ pub struct LogDumper {
 }
 
 impl LogDumper {
-    pub fn new(thid: usize , logfile_path_name: &String) -> Self {
+    pub fn new(thid: usize, logfile_path_name: &String) -> Self {
         let f = File::create(logfile_path_name).expect("Unable to open file");
         let writer = BufWriter::new(f);
         Self {
@@ -121,7 +121,6 @@ impl LogDumper {
 
         let log = breakdowns.get_log_stats(false);
         writeln!(self.writer, "{}", log).unwrap();
-
 
         self.writer.flush().unwrap();
     }
@@ -250,14 +249,14 @@ unsafe extern "C" fn qemu_plugin_install(
     }
 
     let logfile = FileAppender::builder()
-    .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
-    .build("log/output.log").expect("Open logfile failed");
+        .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
+        .build("log/output.log")
+        .expect("Open logfile failed");
 
     let config = Config::builder()
-    .appender(Appender::builder().build("logfile", Box::new(logfile)))
-    .build(Root::builder()
-               .appender("logfile")
-               .build(LevelFilter::Info)).expect("Log Config init");
+        .appender(Appender::builder().build("logfile", Box::new(logfile)))
+        .build(Root::builder().appender("logfile").build(LevelFilter::Info))
+        .expect("Log Config init");
 
     log4rs::init_config(config).expect("Log failed to init");
 

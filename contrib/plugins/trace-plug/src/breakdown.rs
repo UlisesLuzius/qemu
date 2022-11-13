@@ -821,7 +821,7 @@ fn execute_arm(
     );
 
     if is_simd {
-        let simd_sizes = ["8b", "16b", "4h", "8h", "2s", "4s", "1d", "2d"];
+        let simd_sizes = ["8b", "16b", "4h", "8h", "2s", "4s", "d"];
         let insn_str = format!("{}", insn).to_lowercase();
         let no_mnem = insn_str
             .split(" ")
@@ -833,11 +833,12 @@ fn execute_arm(
                 size_str = size;
             }
         }
+        mnemonic_packed = "simd ".to_string() + &mnemonic + size_str;
         if size_str == "" {
             panic!("SIMD size not detected: {}", insn);
+        } else {
+            log::warn!("Found SIMD: {}|{}", mnemonic, insn);
         }
-        
-        mnemonic_packed = "simd ".to_string() + &mnemonic + size_str;
     }
     if is_fp {
         mnemonic_packed = "fp ".to_string() + &mnemonic;

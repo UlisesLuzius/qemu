@@ -1,3 +1,4 @@
+use std::fmt::format;
 use std::fs::File;
 use std::io::{self, BufReader, BufWriter, Read};
 
@@ -387,7 +388,8 @@ impl GroupTypeEnum {
 
 // Group definitions
 static X86_GROUPS_BRANCH: [&str; 4] = ["jump", "ret", "branch_relative", "call"];
-static X86_GROUPS_FP: [&str; 6] = ["sse1", "sse2", "sse41", "sse42", "ssse3", "fpu"];
+static X86_GROUPS_SIMD: [&str; 5] = ["sse1", "sse2", "sse41", "sse42", "ssse3"];
+static X86_GROUPS_FP: [&str; 1] = ["fpu"];
 static X86_GROUPS_CRYPTO: [&str; 3] = ["adx", "aes", "pclmul"];
 static X86_GROUPS_OTHERS: [&str; 2] = ["not64bitmode", "fsgsbse"];
 static X86_MEM_MNEMONICS: [&str; 6] = ["mov", "ins", "stosd", "push", "pop", "leave"];
@@ -395,7 +397,8 @@ static X86_FP_MNEMONICS: [&str; 1] = ["mmx"];
 
 // Group definitions
 static ARM_GROUPS_BRANCH: [&str; 4] = ["return", "branch_relative", "call", "jump"];
-static ARM_GROUPS_FP: [&str; 2] = ["neon", "fparmv8"];
+static ARM_GROUPS_SIMD: [&str; 1] = ["neon"];
+static ARM_GROUPS_FP: [&str; 1] = ["fparmv8"];
 static ARM_GROUPS_CRYPTO: [&str; 1] = ["crypto"];
 static ARM_GROUPS_OTHERS: [&str; 1] = ["pointer"];
 static ARM_MNEMONICS_MEM: [&str; 7] = ["stp", "ldp", "ld", "st", "cas", "prfm", "swp"];
@@ -584,7 +587,7 @@ fn extract_uops_extra_others(insn: &Insn, mnemonic: &String) -> usize {
         let no_mnem = insn_str
             .split(" ")
             .skip(1)
-            .fold("".to_string(), |acc, str| acc + str);
+            .fold("".to_string(), |acc, word| acc + word);
         for str_shift in shifted_regs_mnemonics {
             if no_mnem.contains(str_shift) {
                 log::warn!("Found shifted reg: {}", insn);
@@ -596,19 +599,19 @@ fn extract_uops_extra_others(insn: &Insn, mnemonic: &String) -> usize {
         let re_match_with_shift = Regex::new("(ror|lsr|asr|lsl)").unwrap();
         if !has_shift && re_match_with_shift.is_match(&insn_str) {
             panic!("Matched shift without extra op: {}", insn);
-        } else if re_match_decodebitmask.is_match(&insn_str) {
-            log::warn!("Found with DecodeBitMask imm: {}", insn);
-            uops += 1;
         }
     }
 
+    if re_match_decodebitmask.is_match(&insn_str) {
+        log::warn!("Found with DecodeBitMask imm: {}", insn);
+        uops += 1;
+    }
+
     if mnemonic.contains("bfm") {
-        assert!(uops == 0);
         // BFM like Logic Immediate uses DecodeBitMask
         log::warn!("Found with DecodeBitMask BFM: {}", insn);
         uops += 1
     }
-
     return uops;
 }
 
@@ -616,22 +619,21 @@ fn extract_data(
     is_user: bool,
     byte_len: usize,
     groups: String,
-    mnemonic: String,
+    mnemonic: &String,
     loads: usize,
     stores: usize,
     branch_groups: Vec<&str>,
     fp_groups: Vec<&str>,
+    simd_groups: Vec<&str>,
     crypto_groups: Vec<&str>,
     others_groups: Vec<&str>,
     mem_mnemonics: Vec<&str>,
     fp_mnemonics: Vec<&str>,
-) -> BreakdownData {
-    let has_multi_mem = loads + stores >= 2;
-    let has_mem = loads + stores >= 1;
-    let has_both_mem = loads >= 1 && stores >= 1;
-    let mut is_br = false;
+) -> (GroupTypeEnum, bool, bool, bool, bool, bool, bool) {
+   let mut is_br = false;
     let mut is_mem = false;
     let mut is_fp = false;
+    let mut is_simd = false;
     let mut is_crypto = false;
     let mut is_priviledge = false;
     let mut is_others = false;
@@ -648,6 +650,12 @@ fn extract_data(
         }
     }
 
+    for cate in simd_groups {
+        if groups.contains(cate) {
+            is_simd = true;
+        }
+    }
+
     for cate in others_groups {
         if groups.contains(cate) {
             is_others = true;
@@ -660,13 +668,10 @@ fn extract_data(
         }
     }
 
-    if has_mem {
-        for mnem in mem_mnemonics {
-            if mnemonic.contains(mnem) {
-                is_mem = true;
-            }
+    for mnem in mem_mnemonics {
+        if mnemonic.contains(mnem) {
+            is_mem = true;
         }
-        if !is_mem {}
     }
 
     if groups.contains("priviledge") {
@@ -689,24 +694,16 @@ fn extract_data(
         GroupTypeEnum::CAT_LOGIC
     };
 
-    let data = BreakdownData {
-        mnemonic,
+    let ret = (
         group,
-        is_user,
-        byte_len,
-        loads,
-        stores,
         is_br,
         is_priviledge,
         is_mem,
         is_fp,
+        is_simd,
         is_crypto,
-        has_both_mem,
-        has_mem,
-        has_multi_mem,
-    };
-
-    return data;
+    );
+    return ret;
 }
 
 fn execute_x86(
@@ -728,26 +725,48 @@ fn execute_x86(
     let has_mem = loads + stores >= 1;
     let has_both_mem = loads >= 1 && stores >= 1;
 
-    for cate in X86_GROUPS_FP.to_vec() {
-        if groups.contains(cate) {
-            log::warn!("Is FP: {}", insn);
-        }
-    }
 
-    let data = extract_data(
+    let mut mnemonic_packed = mnemonic.clone();
+    let (group, is_br, is_priviledge, is_mem, is_fp, is_simd, is_crypto) = extract_data(
         is_user,
         byte_len,
         groups,
-        mnemonic,
+        &mnemonic,
         loads,
         stores,
         X86_GROUPS_BRANCH.to_vec(),
         X86_GROUPS_FP.to_vec(),
+        X86_GROUPS_SIMD.to_vec(),
         X86_GROUPS_CRYPTO.to_vec(),
         X86_GROUPS_OTHERS.to_vec(),
         X86_MEM_MNEMONICS.to_vec(),
         X86_FP_MNEMONICS.to_vec(),
     );
+
+    if is_simd {
+        mnemonic_packed = "simd ".to_string() + &mnemonic;
+    }
+    if is_fp {
+        mnemonic_packed = "fp ".to_string() + &mnemonic;
+    }
+
+
+    let data = BreakdownData {
+        mnemonic: mnemonic_packed,
+        group,
+        is_user,
+        byte_len,
+        loads,
+        stores,
+        is_br,
+        is_priviledge,
+        is_mem,
+        is_fp,
+        is_crypto,
+        has_both_mem,
+        has_mem,
+        has_multi_mem,
+    };
 
     return data;
 }
@@ -773,6 +792,10 @@ fn execute_arm(
         }
     }
 
+    let has_multi_mem = loads + stores >= 2;
+    let has_mem = loads + stores >= 1;
+    let has_both_mem = loads >= 1 && stores >= 1;
+ 
     let mut uops = 0;
     if is_mem {
         uops = extract_uops_mem_arm(insn, &mnemonic);
@@ -780,26 +803,64 @@ fn execute_arm(
         uops = extract_uops_extra_others(insn, &mnemonic);
     }
 
-    for cate in X86_GROUPS_FP.to_vec() {
-        if groups.contains(cate) {
-            log::warn!("Is FP: {}", insn);
-        }
-    }
-
-    let data = extract_data(
+    let mut mnemonic_packed = mnemonic.clone();
+    let (group, is_br, is_priviledge, is_mem, is_fp, is_simd, is_crypto) = extract_data(
         is_user,
         4,
         groups,
-        mnemonic,
+        &mnemonic,
         loads,
         stores,
         ARM_GROUPS_BRANCH.to_vec(),
         ARM_GROUPS_FP.to_vec(),
+        ARM_GROUPS_SIMD.to_vec(),
         ARM_GROUPS_CRYPTO.to_vec(),
         ARM_GROUPS_OTHERS.to_vec(),
         ARM_MNEMONICS_MEM.to_vec(),
         [].to_vec(),
     );
+
+    if is_simd {
+        let simd_sizes = ["8b", "16b", "4h", "8h", "2s", "4s"];
+        let insn_str = format!("{}", insn).to_lowercase();
+        let no_mnem = insn_str
+            .split(" ")
+            .skip(1)
+            .fold("".to_string(), |acc, str| acc + str);
+        let mut size_str = "";
+        for size in simd_sizes {
+            if insn_str.contains(size) {
+                size_str = size;
+            }
+        }
+        if size_str == "" {
+            panic!("SIMD size not detected: {}", insn);
+        }
+        
+        mnemonic_packed = "simd ".to_string() + &mnemonic + size_str;
+    }
+    if is_fp {
+        mnemonic_packed = "fp ".to_string() + &mnemonic;
+    }
+
+
+
+    let data = BreakdownData {
+        mnemonic: mnemonic_packed,
+        group,
+        is_user,
+        byte_len: 4,
+        loads,
+        stores,
+        is_br,
+        is_priviledge,
+        is_mem,
+        is_fp,
+        is_crypto,
+        has_both_mem,
+        has_mem,
+        has_multi_mem,
+    };
 
     return data;
 }

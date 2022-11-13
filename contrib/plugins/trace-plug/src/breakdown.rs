@@ -27,6 +27,7 @@ pub struct Breakdown {
     pub is_br: [usize; 2],
     pub is_mem: [usize; 2],
     pub is_fp: [usize; 2],
+    pub is_simd: [usize; 2],
     pub is_crypto: [usize; 2],
     pub is_priviledge: [usize; 2],
 
@@ -50,6 +51,7 @@ impl Default for Breakdown {
             is_priviledge: [0; 2],
             is_mem: [0; 2],
             is_fp: [0; 2],
+            is_simd: [0; 2],
             is_crypto: [0; 2],
             with_both: [0; 2],
             mem_branch: [0; 2],
@@ -70,6 +72,7 @@ pub struct BreakdownData {
     pub is_priviledge: bool,
     pub is_mem: bool,
     pub is_fp: bool,
+    pub is_simd: bool,
     pub is_crypto: bool,
     pub has_both_mem: bool,
     pub has_mem: bool,
@@ -89,6 +92,7 @@ impl Default for BreakdownData {
             is_priviledge: false,
             is_mem: false,
             is_fp: false,
+            is_simd: false,
             is_crypto: false,
             has_both_mem: false,
             has_mem: false,
@@ -188,6 +192,10 @@ impl Breakdown {
             self.is_fp[idx] += count;
         }
 
+        if data.is_simd {
+            self.is_simd[idx] += count;
+        }
+
         if data.is_crypto {
             self.is_crypto[idx] += count;
         }
@@ -274,12 +282,13 @@ pub fn get_capstone(arch: &String) -> Capstone {
 // Maps
 pub struct BreakdownCategories {
     pub map_groups: HashMap<GroupTypeEnum, Breakdown>,
-    pub map_mnen: [HashMap<String, Breakdown>; 7],
+    pub map_mnen: [HashMap<String, Breakdown>; 8],
 }
 
 impl BreakdownCategories {
     pub fn new() -> BreakdownCategories {
         let map_mnen = [
+            HashMap::new(),
             HashMap::new(),
             HashMap::new(),
             HashMap::new(),
@@ -355,8 +364,9 @@ pub enum GroupTypeEnum {
     CAT_LOGIC = 2,
     CAT_PRIV = 3,
     CAT_FP = 4,
-    CAT_CRYPTO = 5,
-    CAT_OTHERS = 6,
+    CAT_SIMD = 5,
+    CAT_CRYPTO = 6,
+    CAT_OTHERS = 7,
 }
 
 impl GroupTypeEnum {
@@ -367,6 +377,7 @@ impl GroupTypeEnum {
             GroupTypeEnum::CAT_LOGIC => "LOGIC ",
             GroupTypeEnum::CAT_PRIV => "PRIV  ",
             GroupTypeEnum::CAT_FP => "FP    ",
+            GroupTypeEnum::CAT_SIMD => "SIMD  ",
             GroupTypeEnum::CAT_CRYPTO => "CRYPTO",
             GroupTypeEnum::CAT_OTHERS => "OTHERS",
         };
@@ -379,8 +390,9 @@ impl GroupTypeEnum {
             2 => GroupTypeEnum::CAT_LOGIC,
             3 => GroupTypeEnum::CAT_PRIV,
             4 => GroupTypeEnum::CAT_FP,
-            5 => GroupTypeEnum::CAT_CRYPTO,
-            6 => GroupTypeEnum::CAT_OTHERS,
+            5 => GroupTypeEnum::CAT_SIMD,
+            6 => GroupTypeEnum::CAT_CRYPTO,
+            7 => GroupTypeEnum::CAT_OTHERS,
             _ => panic!("Wrong group enum"),
         }
     }
@@ -630,7 +642,7 @@ fn extract_data(
     mem_mnemonics: Vec<&str>,
     fp_mnemonics: Vec<&str>,
 ) -> (GroupTypeEnum, bool, bool, bool, bool, bool, bool) {
-   let mut is_br = false;
+    let mut is_br = false;
     let mut is_mem = false;
     let mut is_fp = false;
     let mut is_simd = false;
@@ -762,6 +774,7 @@ fn execute_x86(
         is_priviledge,
         is_mem,
         is_fp,
+        is_simd,
         is_crypto,
         has_both_mem,
         has_mem,
@@ -857,6 +870,7 @@ fn execute_arm(
         is_priviledge,
         is_mem,
         is_fp,
+        is_simd,
         is_crypto,
         has_both_mem,
         has_mem,

@@ -830,10 +830,10 @@ fn execute_arm(
         let mut size_str = "";
         for size in simd_sizes {
             if insn_str.contains(size) {
-                size_str = "." + size;
+                size_str = size;
             }
         }
-        mnemonic_packed = "simd ".to_string() + &mnemonic + size_str;
+        mnemonic_packed = "simd ".to_string() + &mnemonic + "." + size_str;
         if size_str == "" {
             panic!("SIMD size not detected: {}", insn);
         } else {

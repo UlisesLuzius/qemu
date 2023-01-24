@@ -174,5 +174,6 @@
 		"page-demander.h": "c",
 		"qflex-log.h": "c"
 	},
-	"C_Cpp.errorSquiggles": "Enabled"
+	"C_Cpp.errorSquiggles": "Enabled",
+	"cmake.sourceDirectory": "${workspaceFolder}/meson/test cases/cmake/17 include path order/subprojects/cmMod"
 }

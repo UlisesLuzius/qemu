@@ -21,10 +21,10 @@ void HELPER(qflex_executed_instruction)(CPUARMState* env, uint64_t pc, int locat
 #endif
 
 #if defined(TCG_GEN) && defined(CONFIG_DEVTEROFLEX)
-DEF_HELPER_3(devteroflex_example_instrumentation, void , env, i64, i64)
+DEF_HELPER_3(devteroflex_example_instrumentation, void, env, i64, i64)
 
 #elif !defined(CONFIG_DEVTEROFLEX)
-void HELPER(devteroflex_example_instrumentation)(CPUARMState *env, uint64_t arg1, uint64_t arg2));
+void HELPER(devteroflex_example_instrumentation)(CPUARMState *env, uint64_t arg1, uint64_t arg2);
 
 #endif
 

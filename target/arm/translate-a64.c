@@ -38,16 +38,15 @@
 
 #ifdef CONFIG_QFLEX
 #include "qflex/qflex-traces.h"
+#include "qflex/custom-instrumentation.h"
 #define GEN_HELPER(func)  glue(gen_helper_, func)
 #define GEN_QFLEX_HELPER(cond, func) if(cond) func
+#define GEN_QFLEX(statement) statement
 #else
 #define GEN_HELPER(func)
 #define GEN_QFLEX_HELPER(cond, func)
+#define GEN_QFLEX(statement)
 #endif // CONFIG_QFLEX
-
-#ifdef CONFIG_DEVTEROFLEX
-#include "qflex/devteroflex/custom-instrumentation.h"
-#endif
 
 static TCGv_i64 cpu_X[32];
 static TCGv_i64 cpu_pc;
@@ -291,7 +290,7 @@ static TCGv_i64 gen_mte_check1_mmuidx(DisasContext *s, TCGv_i64 addr,
         desc = FIELD_DP32(desc, MTEDESC, SIZEM1, (1 << log2_size) - 1);
 
         ret = new_tmp_a64(s);
-        GEN_QFLEX_HELPER(devteroflexGen.example, GEN_HELPER(devteroflex_example_instrumentation)( 
+        GEN_QFLEX_HELPER(qflexGen.example, GEN_HELPER(qflex_example_instrumentation)( 
                          cpu_env, tcg_const_i64(TAG_MTE_OPERATION), addr));
         gen_helper_mte_check(ret, cpu_env, tcg_constant_i32(desc), addr);
 
@@ -2453,7 +2452,7 @@ static void disas_uncond_b_reg(DisasContext *s, uint32_t insn)
             gen_io_start();
         }
 
-        GEN_QFLEX_HELPER(devteroflexGen.example, GEN_HELPER(devteroflex_example_instrumentation)( 
+        GEN_QFLEX_HELPER(qflexGen.example, GEN_HELPER(qflex_example_instrumentation)( 
                          cpu_env, tcg_const_i64(TAG_EXCEPTION_RETURN), dst));
         gen_helper_exception_return(cpu_env, dst);
         tcg_temp_free_i64(dst);
@@ -3176,10 +3175,10 @@ static void disas_ldst_pair(DisasContext *s, uint32_t insn)
     clean_addr = gen_mte_checkN(s, dirty_addr, !is_load,
                                 (wback || rn != 31) && !set_tag, 2 << size);
 
-    int op_type = is_load ? MMU_DATA_LOAD : MMU_DATA_STORE;
     TCGv_i64 clean_addr_base = tcg_temp_new_i64();
     tcg_gen_addi_i64(clean_addr_base, clean_addr, 0);
 
+    GEN_QFLEX(int op_type = is_load ? MMU_DATA_LOAD : MMU_DATA_STORE);
     GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_pre_mem)( 
         cpu_env, clean_addr_base, tcg_const_i32(op_type), tcg_const_i32(2 << size)));
     if (is_vector) {
@@ -3440,7 +3439,7 @@ static void disas_ldst_reg_roffset(DisasContext *s, uint32_t insn,
     tcg_gen_add_i64(dirty_addr, dirty_addr, tcg_rm);
     clean_addr = gen_mte_check1(s, dirty_addr, is_store, true, size);
 
-    int op_type = is_store ? MMU_DATA_STORE : MMU_DATA_LOAD;
+    GEN_QFLEX(int op_type = is_store ? MMU_DATA_STORE : MMU_DATA_LOAD);
     GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_pre_mem)( 
         cpu_env, clean_addr, tcg_const_i32(op_type), tcg_const_i32(1 << size)));
     if (is_vector) {
@@ -3529,7 +3528,7 @@ static void disas_ldst_reg_unsigned_imm(DisasContext *s, uint32_t insn,
     tcg_gen_addi_i64(dirty_addr, dirty_addr, offset);
     clean_addr = gen_mte_check1(s, dirty_addr, is_store, rn != 31, size);
 
-    int op_type = is_store ? MMU_DATA_STORE : MMU_DATA_LOAD;
+    GEN_QFLEX(int op_type = is_store ? MMU_DATA_STORE : MMU_DATA_LOAD);
     GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_pre_mem)( 
         cpu_env, clean_addr, tcg_const_i32(op_type), tcg_const_i32(1 << size)));
     if (is_vector) {
@@ -3998,7 +3997,7 @@ static void disas_ldst_multiple_struct(DisasContext *s, uint32_t insn)
 
     elements = (is_q ? 16 : 8) >> size;
     tcg_ebytes = tcg_constant_i64(1 << size);
-    int op_type = is_store ? MMU_DATA_STORE : MMU_DATA_LOAD;
+    GEN_QFLEX(int op_type = is_store ? MMU_DATA_STORE : MMU_DATA_LOAD);
     for (r = 0; r < rpt; r++) {
         int e;
         for (e = 0; e < elements; e++) {
@@ -4148,7 +4147,7 @@ static void disas_ldst_single_struct(DisasContext *s, uint32_t insn)
     mop = finalize_memop(s, scale);
 
     tcg_ebytes = tcg_constant_i64(1 << scale);
-    int op_type = is_load ? MMU_DATA_LOAD : MMU_DATA_STORE;
+    GEN_QFLEX(int op_type = is_load ? MMU_DATA_LOAD : MMU_DATA_STORE);
     for (xs = 0; xs < selem; xs++) {
         GEN_QFLEX_HELPER(qflex_mem_trace_gen_helper(), GEN_HELPER(qflex_pre_mem)( 
             cpu_env, clean_addr, tcg_const_i32(op_type), tcg_const_i32(1 << scale)));

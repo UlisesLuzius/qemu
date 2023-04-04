@@ -50,7 +50,9 @@ uint64_t QFLEX_GET_ARCH(reg)(CPUState *cs, int reg_index) {
 }
 
 void QFLEX_GET_ARCH(log_inst)(CPUState *cs) {
-    log_target_disas(cs, QFLEX_GET_ARCH(pc)(cs), 4);
+    FILE* logfile = qemu_log_trylock();
+    target_disas(logfile, cs, QFLEX_GET_ARCH(pc)(cs), 4);
+    qemu_log_unlock(logfile);
 }
 
 uint64_t gva_to_hva(CPUState *cs, uint64_t addr, int access_type) {

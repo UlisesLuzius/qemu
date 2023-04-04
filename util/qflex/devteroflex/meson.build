@@ -2,9 +2,8 @@ devteroflex_ss.add([files(
   'file-ops.c',
   'demand-paging.c',
   'mmu.c',
-  'custom-instrumentation.c',
   'devteroflex.c',
-  'emulation-logger.c',
+  'emulation-logger.c'
  ), devteroflex])
 
 fpga_ss = ss.source_set()

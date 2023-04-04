@@ -207,9 +207,9 @@ void HELPER(qflex_executed_instruction)(CPUARMState* env, uint64_t pc, int locat
     switch(location) {
         case QFLEX_EXEC_IN:
             if(unlikely(qflex_loglevel_mask(QFLEX_LOG_TB_EXEC))) {
-                FILE* logfile = qemu_log_lock();
+                FILE* logfile = qemu_log_trylock();
                 qemu_log("IN[%d]  :", cs->cpu_index);
-                log_target_disas(cs, pc, 4);
+                target_disas(logfile, cs, pc, 4);
                 qemu_log_unlock(logfile);
             }
             qflexState.inst_done = true;
@@ -225,3 +225,16 @@ void HELPER(qflex_executed_instruction)(CPUARMState* env, uint64_t pc, int locat
  * For the moment not needed.
  */
 void HELPER(qflex_exception_return)(CPUARMState *env) { return; }
+
+/** qflex_example_instrumentation
+ *  This function is an inserted callback to be executed on an instruction execution.
+ *  Instrumenting instruction execution in such fashion slowdowns significantly QEMU
+ *  emulation speed.
+ */
+#include "qflex/custom-instrumentation.h"
+void HELPER(qflex_example_instrumentation)(CPUARMState *env, uint64_t arg1, uint64_t arg2)
+{
+    CPUState *cs = CPU(env_archcpu(env));
+    // Here you can insert any function callback
+    qflex_example_callback(cs->cpu_index, arg1, arg2);
+}

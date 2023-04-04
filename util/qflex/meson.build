@@ -3,7 +3,8 @@ qflex_ss.add([files(
   'qflex.c',
   'qflex-config.c',
   'qflex-hmp.c',
-  'qflex-traces.c'
+  'qflex-traces.c',
+  'custom-instrumentation.c',
 ), qflex])
 
 if 'CONFIG_DEVTEROFLEX' in config_host

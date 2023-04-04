@@ -71,15 +71,3 @@ bool devteroflex_compare_archstate(CPUState *cpu, DevteroflexArchState *devterof
     return hasMismatch;
 }
 
-/** devteroflex_example_instrumentation
- *  This function is an inserted callback to be executed on an instruction execution.
- *  Instrumenting instruction execution in such fashion slowdowns significantly QEMU
- *  emulation speed.
- */
-#include "qflex/devteroflex/custom-instrumentation.h"
-void HELPER(devteroflex_example_instrumentation)(CPUARMState *env, uint64_t arg1, uint64_t arg2)
-{
-    CPUState *cs = CPU(env_archcpu(env));
-    // Here you can insert any function callback
-    devteroflex_example_callback(cs->cpu_index, arg1, arg2);
-}

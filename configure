@@ -302,6 +302,17 @@ fdt="auto"
 tcg="auto"
 cfi="false"
 
+# 4. Detection partly done in configure
+xen=${default_feature:+disabled}
+######################
+# QFLEX
+qflex="no"
+# DEVTEROFLEX
+devteroflex_dir="NONE"
+devteroflex="no"
+devteroflex_aws_fpga_dir="NONE"
+######################
+
 # parse CC options second
 for opt do
   optarg=$(expr "x$opt" : 'x[^=]*=\(.*\)')
@@ -896,6 +907,23 @@ for opt do
   ;;
   --enable-jemalloc) meson_option_parse --enable-malloc=jemalloc jemalloc
   ;;
+######################
+# QFLEX
+######################
+  --disable-qflex) qflex="no"
+  ;;
+  --enable-qflex) qflex="yes"
+  ;;
+# DEVTEROFLEX
+  --disable-devteroflex) devteroflex="no"
+  ;;
+  --enable-devteroflex=*) devteroflex_dir="$optarg"
+    qflex="yes"
+    devteroflex="yes"
+  ;;
+  --enable-aws-fpga=*) devteroflex_aws_fpga_dir="$optarg"
+  ;;
+######################
   # everything else has the same name in configure and meson
   --*) meson_option_parse "$opt" "$optarg"
   ;;
@@ -1050,6 +1078,13 @@ cat << EOF
   safe-stack      SafeStack Stack Smash Protection. Depends on
                   clang/llvm >= 3.7 and requires coroutine backend ucontext.
 
+######################
+# QFLEX
+  qflex           support for QFlex
+# DevteroFlex
+  devteroflex     support for DevteroFlex
+  aws-fpga        build devteroflex using AWS FPGA, instead of the simulator. Passing the path to your folder aws-fpga/sdk/userspace.
+######################
 NOTE: The object files are built at the place where configure is launched
 EOF
 exit 0
@@ -2238,6 +2273,26 @@ if test "$have_ubsan" = "yes"; then
 fi
 
 ##########################################
+# QFLEX
+if test $qflex = "yes" ; then
+  QEMU_CFLAGS="-DCONFIG_QFLEX $QEMU_CFLAGS"
+  libqflex=""
+fi
+
+# DEVTEROFLEX
+if test $devteroflex = "yes" ; then
+  QEMU_CFLAGS="-DCONFIG_DEVTEROFLEX $QEMU_CFLAGS"
+  libdevteroflex="-lprotobuf-c -lrt -ldl"
+fi
+
+if [ $devteroflex_aws_fpga_dir != "NONE" ]; then
+  QEMU_CFLAGS="-DAWS_FPGA -DCONFIG_LOGLEVEL=3 -I$devteroflex_aws_fpga_dir/include $QEMU_CFLAGS"
+  QEMU_LDFLAGS="-L$devteroflex_aws_fpga_dir/lib $QEMU_LDFLAGS"
+  libdevteroflex="-lfpga_mgmt $libdevteroflex"
+fi
+##########################################
+
+
 # Guest agent Windows MSI package
 
 if test "$QEMU_GA_MANUFACTURER" = ""; then
@@ -2474,6 +2529,26 @@ fi
 if test "$safe_stack" = "yes"; then
   echo "CONFIG_SAFESTACK=y" >> $config_host_mak
 fi
+
+######################
+# QFLEX
+if test "$qflex" = "yes" ; then
+  echo "CONFIG_QFLEX=y" >> $config_host_mak
+  echo "LIBQFLEX_LIBS=$libqflex" >> $config_host_mak
+fi
+# DEVTEROFLEX
+if test "$devteroflex" = "yes" ; then
+  echo "CONFIG_DEVTEROFLEX=y" >> $config_host_mak
+  echo "LIBDEVTEROFLEX_LIBS=$libdevteroflex" >> $config_host_mak
+  echo "DEVTEROFLEX_DIR=" >> $config_host_mak
+	symlink "$devteroflex_dir" "$source_path/util/qflex/devteroflex/fpga" 
+	symlink "$devteroflex_dir" "$source_path/include/qflex/devteroflex/fpga" 
+fi
+
+if [ $devteroflex_aws_fpga_dir != "NONE" ]; then
+  echo "DEVTEROFLEX_AWS_FPGA_LIBRARY=$devteroflex_aws_fpga_dir" >> $config_host_mak
+fi
+######################
 
 # tests/tcg configuration
 (config_host_mak=tests/tcg/config-host.mak
